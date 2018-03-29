@@ -1,0 +1,5 @@
+finance
+pytelegrambotapi/
+.idea/
+credentials.py
+*.pyc

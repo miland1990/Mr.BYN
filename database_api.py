@@ -28,14 +28,20 @@ class SQLighter:
                 (user_id, message_id, message_timestamp, None, prise, note)
             )
 
+    def find_expense(self, note):
+        return self.cursor.execute(
+            'SELECT DISTINCT expense from finance WHERE note=? AND expense IS NOT NULL;', (note,)
+        ).fetchall()
+
     def update_expense(self, message_id, expense):
         with self.connection:
             self.cursor.execute('UPDATE finance SET expense=? WHERE message_id=?;', (expense, message_id))
 
-    def stat_by_total(self):
+    def stat_by_total_month(self, month_ts):
         with self.connection:
-            return self.cursor.execute('SELECT SUM(prise) from finance').fetchall()[0][0]
-
+            return self.cursor.execute(
+                'SELECT SUM(prise) from finance WHERE message_timestamp > ?;', (month_ts,)
+            ).fetchall()[0][0]
 
     def close(self):
         """ Закрываем текущее соединение с БД """
