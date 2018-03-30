@@ -9,10 +9,12 @@ from credentials import token
 
 bot = telebot.TeleBot(token)
 
-PURCHASES = (u'коммуналка', u'магазин', u'сборы', u'бытовуха', u'здоровье',
-             u'транспорт', u'красота', u'развлекушки', u'покупки', u'Глеб', u'иные расходы')
 
+# TODO: сделать приложением, которое работает во взаимодействии как с телеграмом, так и имеет веб-морду
 # TODO: сделать добавление токена Telegram при запуске скрипта
+# TODO: добавить тестирование
+# TODO: миграция и создания БД файлика автоматом
+# TODO: сделать кнопки в клаве
 # TODO: логика бонусов
 # TODO: логика ведения баланса (ввод источников доходов с описанием)
 # TODO: парсинг чеков
@@ -33,7 +35,7 @@ PURCHASES = (u'коммуналка', u'магазин', u'сборы', u'быт
 def generate_bot_text(db):
     td = date.today().replace(day=1)
     month_start = mktime(td.timetuple())
-    return u'Cпасибо за покупку. В этом месяце потрачено: {} BYN'.format(db.stat_by_total_month(month_start))
+    return u'Cпасибо за покупку. Израсходовано: {} BYN'.format(round(db.stat_by_total_month(month_start), 2))
 
 
 @bot.message_handler(content_types=["text"])
@@ -42,17 +44,18 @@ def any_msg(message):
     if not message.text.startswith('/'):
         keyboard = telebot.types.InlineKeyboardMarkup()
         note = consume_message(message)
-        previous_expense = db.find_expense(note)
-        if not previous_expense or len(previous_expense) > 1:
-            for index, purch in enumerate(PURCHASES, start=1):
-                callback_button = telebot.types.InlineKeyboardButton(text=purch, callback_data=index)
-                keyboard.add(callback_button)
-            bot.send_message(message.chat.id, u'"{}"'.format(message.text), reply_markup=keyboard)
+        if not note:
+            bot.send_message(message.chat.id, u'Введите корректно расход: "цена комментарий"')
         else:
-            db.update_expense(message.message_id, previous_expense[0][0])
-            bot.send_message(message.chat.id, generate_bot_text(db))
-    elif message.text == '/migrate':
-        db.set_up_tables()
+            previous_expense = db.find_expense(note)
+            if not previous_expense or len(previous_expense) > 1:
+                for index, purch in enumerate(config.PURCHASES, start=1):
+                    callback_button = telebot.types.InlineKeyboardButton(text=purch, callback_data=index)
+                    keyboard.add(callback_button)
+                bot.send_message(message.chat.id, u'"{}"'.format(message.text), reply_markup=keyboard)
+            else:
+                db.update_expense(message.message_id, previous_expense[0][0])
+                bot.send_message(message.chat.id, generate_bot_text(db))
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -67,11 +70,17 @@ def callback_inline(call):
         )
 
 
+def is_correct_price(value):
+    return bool(value) or isinstance(value, int) or isinstance(value, float)
+
+
 def consume_message(message):
     purchase = message.text
     splitted = purchase.split()
     db = SQLighter(config.database_name)
     prise = splitted[0].replace(',', '.')
+    if not is_correct_price(prise) or len(splitted) < 2:
+        return None
     note = ''.join(splitted[1:])
     db.record_item(message.from_user.id, message.message_id, message.date, prise, note)
     db.close()

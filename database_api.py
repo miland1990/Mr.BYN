@@ -12,10 +12,9 @@ class SQLighter:
     def set_up_tables(self):
         """ Начальная миграция """
         with self.connection:
-            from bot import PURCHASES
             self.cursor.execute('CREATE TABLE IF NOT EXISTS finance (id integer PRIMARY KEY,user_id text NOT NULL,message_id text NOT NULL,message_timestamp integer NOT NULL,expense text,prise text NOT NULL,note text NOT NULL);')
             self.cursor.execute('CREATE TABLE IF NOT EXISTS expenses (id integer PRIMARY KEY, expense text NOT NULL);')
-            for expense in PURCHASES:
+            for expense in config.PURCHASES:
                 self.cursor.execute('INSERT INTO expenses (expense) VALUES (?);', (expense,))
 
     def record_item(self, user_id, message_id, message_timestamp, prise, note):
