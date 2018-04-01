@@ -27,10 +27,25 @@ class SQLighter:
                 (user_id, message_id, message_timestamp, None, prise, note)
             )
 
+    def delete_expense_by_timestamp(self, timestamp):
+        with self.connection:
+            self.cursor.execute('DELETE FROM finance WHERE message_timestamp=? AND expense IS NULL;', (timestamp,))
+
+    def delete_expense_by_id(self, id):
+        with self.connection:
+            self.cursor.execute('DELETE FROM finance WHERE message_id=?;', (id,))
+
+    def find_prior_expense(self, message_timestamp):
+        with self.connection:
+            return self.cursor.execute(
+                'SELECT expense from finance WHERE message_timestamp=? AND expense IS NOT NULL LIMIT 1;', (message_timestamp,)
+            ).fetchall()
+
     def find_expense(self, note):
-        return self.cursor.execute(
-            'SELECT DISTINCT expense from finance WHERE note=? AND expense IS NOT NULL;', (note,)
-        ).fetchall()
+        with self.connection:
+            return self.cursor.execute(
+                'SELECT DISTINCT expense from finance WHERE note=? AND expense IS NOT NULL;', (note,)
+            ).fetchall()
 
     def update_expense(self, message_id, expense):
         with self.connection:
