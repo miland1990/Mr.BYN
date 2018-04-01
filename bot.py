@@ -42,6 +42,7 @@ PRIOR_DATETIME_FORMAT = '%d-%m-%y %H:%M:%S'
 def generate_bot_text(db):
     td = date.today().replace(day=1)
     month_start = mktime(td.timetuple())
+    month_start = month_start if month_start else 0
     return u'Cпасибо. Израсходовано за месяц: {} BYN'.format(round(db.stat_by_total_month(month_start), 2))
 
 
