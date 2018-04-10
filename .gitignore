@@ -3,3 +3,4 @@ pytelegrambotapi/
 .idea/
 credentials.py
 *.pyc
+*env*
