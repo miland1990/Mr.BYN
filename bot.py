@@ -7,13 +7,13 @@ import telebot
 import config
 from database_api import SQLighter
 from credentials import token
+from utils import authorise
 
 bot = telebot.TeleBot(token)
 
 
 # TODO: сделать приложением, которое работает во взаимодействии как с телеграмом, так и имеет веб-морду
 # TODO: документация в md формате адекватная
-# TODO: убедиться, что приложегие безопасно со стороны сторонних пользователей (авторизацию настроить)
 # TODO: завести тестового бота
 # TODO: добавить тестирование
 # TODO: миграция и создания БД файлика автоматом
@@ -30,6 +30,8 @@ bot = telebot.TeleBot(token)
 # TODO: возможность просмотра статы за указанный период времени и сравнение с аналогичными тремя периодами
 # TODO: возможность переноса платежа на следующий месяц
 # TODO: проверку на дубликат за последние 10 инпутов простых сообщений по категории и цене с обработкой типа "уверены?"
+# TODO: сделать для категорий Foreign Key
+# TODO: должно игнорировать при копировании имя
 
 PRIOR_RE_STR = r'Priorbank\. Karta (?:\d\*{3}\d{4}). (?P<datetime>.{17}). ' \
                r'Oplata (?P<prise>\d*[.,]?\d*) (?P<currency>[\w+]{3}). (?P<place>[^\.]+).*'
@@ -187,10 +189,12 @@ class SimpleMrBYN(BaseMrBYN):
         if not (self.note and self.is_valid_prise):
             self.send_to_chat(text=self.UI_MESSAGE_INVALID)
         else:
-            self.record_expense_row()
-            if not self.find_expense_by_note():
+            previous_expense = self.find_expense_by_note()
+            if not previous_expense:
+                self.record_expense_row()
                 self.send_to_chat_with_choice_buttons(text=self.get_payment_title)
             else:
+                self.record_expense_row(expense=previous_expense)
                 self.send_to_chat(text=self.get_current_month_stat_message())
 
     def reply_to_choice(self, call):
@@ -209,6 +213,10 @@ class SimpleMrBYN(BaseMrBYN):
 class PriorMrBYN(BaseMrBYN):
 
     MESSAGE_DELIMETER = u'\n'
+    SMS_NOTES_NEED_MENU = (u'BLR MOBILE BANK',)
+    SMS_NOTES_PREDICTORS = (
+        (u'NLD UBER', 6),
+    )
 
     def get_messages(self, message):
         return message.text.split(self.MESSAGE_DELIMETER)
@@ -240,8 +248,12 @@ class PriorMrBYN(BaseMrBYN):
                 self.send_to_chat(text)
             else:
                 prev_note_expense = self.find_expense_by_note()
-                self.record_expense_row(prev_note_expense)
-                if not prev_note_expense or prev_note_expense == u'BLR MOBILE BANK':
+                if not prev_note_expense:
+                    for sub_note, expense in self.SMS_NOTES_PREDICTORS:
+                        if sub_note in self._note:
+                            prev_note_expense = expense
+                    self.record_expense_row(prev_note_expense)
+                elif not prev_note_expense or prev_note_expense not in self.SMS_NOTES_NEED_MENU:
                     button_message_counter += 1
                     self.bot.send_message(
                         self._message.chat.id,
@@ -259,36 +271,39 @@ class PriorMrBYN(BaseMrBYN):
             self.bot.delete_message(call.message.chat.id, stat_message_id)
         else:
             self.db.update_expense(message_id, expense_index, text=text)
-        # edited_text = self.get_current_month_stat_message(template=self.UI_MESSAGE_MONTH_STAT)
-        # self.edit_message_from_chat(edited_text, stat_message_id)
         self.bot.delete_message(call.message.chat.id, buttons_message_id)
 
 
 @bot.message_handler(commands=[u'stat'])
+@authorise
 def current_stats(message):
     mr_dollar = SimpleMrBYN(SQLighter(), bot)
     mr_dollar.get_current_stats(message)
 
 
 @bot.message_handler(func=lambda message: u'Priorbank. Karta' in message.text)
+@authorise
 def prior_msg(message):
     mr_dollar = PriorMrBYN(SQLighter(), bot)
     mr_dollar.reply_to_message(message)
 
 
-@bot.message_handler(content_types=["text"])
+@bot.message_handler(content_types=[u'text'])
+@authorise
 def simple_msg(message):
     mr_dollar = SimpleMrBYN(SQLighter(), bot)
     mr_dollar.reply_to_message(message)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.endswith(u'|'))
+@authorise
 def reply_to_simple_choice(call):
     mr_dollar = SimpleMrBYN(SQLighter(), bot)
     mr_dollar.reply_to_choice(call)
 
 
 @bot.callback_query_handler(func=lambda call: True)
+@authorise
 def reply_to_prior_choice(call):
     mr_dollar = PriorMrBYN(SQLighter(), bot)
     mr_dollar.reply_to_choice(call)

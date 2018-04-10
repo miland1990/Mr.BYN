@@ -1,5 +1,5 @@
 # coding: utf-8
-database_name = 'finance'
+database_name = u'finance'
 EXPENSES = (
     u'коммуналка',
     u'магазин',
@@ -11,6 +11,6 @@ EXPENSES = (
     u'развлечения',
     u'покупки',
     u'ребенок',
-    u'строительство дома'
+    u'стройка',
     u'иные расходы',
 )
