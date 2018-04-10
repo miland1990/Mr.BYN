@@ -92,6 +92,6 @@ class SQLighter:
     def stat_by_total_month(self, month_ts):
         with self.connection:
             return self.cursor.execute(
-                u"""SELECT SUM(prise) from finance WHERE message_timestamp > ?;""",
+                u"""SELECT SUM(prise) from finance WHERE message_timestamp > ? and expense != 11;""",
                 (month_ts,)
             ).fetchone()
