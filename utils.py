@@ -5,9 +5,9 @@ from functools import wraps
 
 def authorise(func):
     @wraps(func)
-    def wrap(message, *args, **kwargs):
-        if message.from_user.id not in ALLOWED_USERS_IDS:
+    def wrap(call, *args, **kwargs):
+        if call.from_user.id not in ALLOWED_USERS_IDS:
             return
         else:
-            return func(message, *args, **kwargs)
+            return func(call, *args, **kwargs)
     return wrap
