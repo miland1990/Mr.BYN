@@ -5,7 +5,7 @@ import re
 # RE_PRIOR_SMS = re.compile(RE_PRIOR_SMS_STR)
 # TODO: сделать все варианты выбора валют нормально
 # TODO: протестировать регулярку!!!
-RE_SIMPLE_STR = r'(?P<price>[\d\.\,ю]+)(?:\s+)?(?P<currency>USD|BYR|BYN|RUB|UAH|EUR|PLN)?(?:\s+)?(?P<note>[^\d\.\,]+[^\d\.\,\s])'
+RE_SIMPLE_STR = r'(?P<prise>[\d\.\,ю]+)(?:\s+)?(?P<currency>USD|BYR|BYN|RUB|UAH|EUR|PLN)?(?:\s+)?(?P<note>[^\d\.\,]+[^\d\.\,\s])'
 RE_SIMPLE = re.compile(RE_SIMPLE_STR, re.U | re.I)
 
 # PRIOR_DATETIME_FORMAT = '%d-%m-%y %H:%M:%S'

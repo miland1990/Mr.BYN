@@ -30,6 +30,7 @@ _prior_sms_input = namedtuple('_prior_sms_input', 'epoch,prise,currency,note')  
 # TODO: возможность переноса траты  на следующий месяц
 # TODO: возможность отмены траты по id траты  (ее нужно дописать в мессагу)
 # TODO: варнинги об увеличении трат за аналогичные периоды в прошлые периоды
+# TODO: возможность изменить категорию уже запомненного варианта
 
 # баги
 # TODO: плохо распознает в сплошном простом вводе числа, относящиеся не к цене
@@ -73,9 +74,10 @@ def _validate_prise(prise):
     return prise.replace("ю", ".").replace(",", ".")
 
 
-def create_purchases(session, conversation, message, purchases, status=Purchase.KIND_SIMPLE):
+def create_purchases(session, conversation, message, purchases):
     purchases_items = []
     for purchase_info in purchases:
+        status = Purchase.STATUS_CLOSED if purchase_info.expense_id else Purchase.STATUS_OPEN
         purchase = Purchase(
             user_message_id=message.message_id,
             conversation_id=conversation.id,
@@ -126,7 +128,7 @@ def simple_user_input(message):
     for position, info in enumerate(RE_SIMPLE.finditer(message.text), start=1):
         purchases.append(
             _simple_input(
-                info.group('price'),
+                info.group('prise'),
                 info.group('currency'),
                 info.group('note'),
                 guess_expense(session, info.group('note')),
@@ -139,7 +141,7 @@ def simple_user_input(message):
         if purchase_info.expense_id:
             bot.send_message(
                 message.chat.id,
-                make_purchase_report_message(purchase_info),
+                make_purchase_report_message(purchase_info, counted='Учтено автоматически'),
                 parse_mode='Markdown',
             )
         else:
@@ -168,12 +170,14 @@ def get_month_stat(session):
     return 0  # если это первая стата месяца
 
 
-def make_purchase_report_message(purchase):
+def make_purchase_report_message(purchase, counted='Учтено'):
     category_name = dict(EXPENSES).get(str(purchase.expense_id))
     price = round(purchase.prise, 2) if not isinstance(purchase.prise, str) else purchase.prise
-    return f'*Учтено*: {price} {_validate_currency_code(purchase.currency, faked_byn=False)} - ' \
+    report = f'*{counted}*: {price} {_validate_currency_code(purchase.currency, faked_byn=False)} - ' \
            f'{purchase.note}. ' \
-           f'*Категория*: "{category_name.capitalize()}".'
+           f'*Категория*: "{category_name.capitalize()}". '
+    report += f'ID расхода - {purchase.id}' if isinstance(purchase, Purchase) else ""
+    return report
 
 def make_expense_report_reply(month_sum, conversation_open_purchases_count):
     positive_open_conversation_purchases_count = conversation_open_purchases_count - 1
@@ -230,11 +234,10 @@ def reply_to_simple_choice(call):
         bot.delete_message(call.message.chat.id, purchase.bot_message_id)
     else:
         purchase.expense_id = expense_id
-        purchase.status = Purchase.STATUS_CLOSED
 
         bot.edit_message_text(make_purchase_report_message(purchase), call.message.chat.id, purchase.bot_message_id, parse_mode='Markdown')
 
-        is_processed_conversation = get_conversation_open_purchases_count(session, conversation) == 1
+        is_processed_conversation = get_conversation_open_purchases_count(session, conversation) == 0
         if is_processed_conversation:
             conversation.status = Conversation.STATUS_CLOSED
             bot.edit_message_text(
@@ -250,6 +253,7 @@ def reply_to_simple_choice(call):
                 conversation.bot_message_id,
                 parse_mode='Markdown',
             )
+            purchase.status = Purchase.STATUS_CLOSED
     session.commit()
     session.close()
 
