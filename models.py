@@ -17,8 +17,7 @@ class Purchase(Base):
     KIND_SMS = 2
 
     STATUS_OPEN = 1
-    STATUS_DUPLICATED = 2
-    STATUS_CLOSED = 3
+    STATUS_CLOSED = 2
 
     KIND_CHOICES = (
         ('1', 'simple'),
@@ -35,11 +34,11 @@ class Purchase(Base):
     user_message_id = Column(Integer)
     status = Column(ChoiceType(STATUS_CHOICES), default=STATUS_OPEN)
     position = Column(Integer)
-    currency = Column(CurrencyType, default='BYR')  # BYN еще не стал известным
+    currency = Column(CurrencyType, default='BYR')  # BYN в библиотеке еще не фигурирует
     user_id = Column(Integer)
     epoch = Column(TIMESTAMP())
-    prise = Column(Float(asdecimal=True))  # напиши правильно
-    expense_id = Column(Integer, ForeignKey('expsense.id'))
+    prise = Column(Float(asdecimal=True))  # TODO: исправить написание перед релизом
+    expense_id = Column(Integer, ForeignKey('expsense.id'))  # TODO: нужно поправить на expense
     conversation_id = Column(Integer, ForeignKey('conversation.id'))
     note = Column(String(200))
     conversation = relationship('Conversation', back_populates='purchases')
@@ -50,6 +49,25 @@ class Purchase(Base):
         Предвычесленный id резульирующего сообщения, описывающего реакцию бота на каждое из введенных логических трат.
         """
         return self.user_message_id + self.position
+
+    @property
+    def price(self):
+        """
+        Цену округляем до двух знаков после запятой
+        """
+        return round(self.prise, 2)
+
+    @property
+    def currency_code(self):
+        """
+        Костыль
+        :return: 
+        """
+        return self.currency if self.currency != "BYR" else "BYN"
+
+    @property
+    def category_name(self):
+        return dict(EXPENSES).get(str(self.expense_id), "").capitalize()
 
 
 class Conversation(Base):
@@ -80,7 +98,7 @@ class Conversation(Base):
         return len(self.purchases)
 
 
-class Expense(Base):
+class Expense(Base):  # TODO: переименовать в категорию расхода
     """
     Возможные статьи расходов.
     """
