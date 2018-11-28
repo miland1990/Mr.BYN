@@ -26,7 +26,7 @@ class Purchase(Base):
     )
     STATUS_CHOICES = (
         ('1', 'new'),
-        ('2', 'duplicated'),
+        ('2', 'duplicated'),  # непонятный статус
         ('3', 'closed'),
     )
 
@@ -72,13 +72,12 @@ class Conversation(Base):
     id = Column(Integer, Sequence('id'), primary_key=True, autoincrement=True)
     purchases = relationship('Purchase', back_populates='conversation')  # реплика пользователя
     status = Column(ChoiceType(STATUS_CHOICES), default=STATUS_OPEN)
+    initial_purchase_count = Column(Integer)  # это нужно удалить
+    bot_message_id = Column(Integer)
 
     @property
-    def bot_message_id(self):
-        """
-        Предвычесленный id результирующего сообщения, подводящего итог всех расходов в сообщении.
-        """
-        return self.purchases[-1].user_message_id + len(self.purchases) + 1
+    def purchases_count(self):
+        return len(self.purchases)
 
 
 class Expense(Base):

@@ -10,25 +10,42 @@ import telebot
 
 from credentials import token
 from constants import RE_SIMPLE, RE_SIMPLE_STR, CURRENCY_DEFAULT, REPLY_EXPENSES, SIMPLE_TYPE, \
-    NOTES_NEVER_NEED_MENU, EXPENSES
+    NOTES_NEVER_NEED_MENU, EXPENSES, UI_CANCEL_INDEX
 from utils import authorise
 from models import Purchase, Conversation
 from database import db_make_session
 
 bot = telebot.TeleBot(token)
 
-_simple_input = namedtuple('_simple_input', 'prise,currency,note,expense_id,position') # лучше классами
-_prior_sms_input = namedtuple('_prior_sms_input', 'epoch,prise,currency,note')
+_simple_input = namedtuple('_simple_input', 'prise,currency,note,expense_id,position') # лучше классами, а еще лучше создать нормальный класс
+_prior_sms_input = namedtuple('_prior_sms_input', 'epoch,prise,currency,note')  # здесь та же проблема
+
+# фичи
+# TODO: сделать командой конвертацию трат месяца к BYN или USD
+# TODO: сделать возможность заблаговременно в сообщении указать, что необходим ручной выбор категории
+# TODO: тэггирование о том, что этот расход не должен учитываться с статистике месяца (черная категория)
+# TODO: сделать возможность тэггирования расхода, чтобы именно по нему можно было узнать стату
+# TODO: сделать команду для тэггированного расхода
+# TODO: продумать возможность удобного добавления id пользователя, чтобы можно было авторизовываться
+# TODO: возможность переноса траты  на следующий месяц
+# TODO: возможность отмены траты по id траты  (ее нужно дописать в мессагу)
+# TODO: варнинги об увеличении трат за аналогичные периоды в прошлые периоды
+
+# баги
+# TODO: плохо распознает в сплошном простом вводе числа, относящиеся не к цене
+# TODO: разобраться, почему не работают смс-ки
+
+# рефакторинг
+# TODO: сделать в чистой архитектуре
+# TODO: исправить prise на price
 
 
 @bot.message_handler(commands=[u'stat'])
 @authorise
 def current_stats(message):
     session = db_make_session()
-    last_conversation = session.query(Conversation).all()[-1]
-    for purchase in last_conversation.purchases:
-        bot.edit_message_text('ura', message.chat.id, purchase.bot_message_id)
-    bot.edit_message_text('total', message.chat.id, last_conversation.bot_message_id)
+    bot.send_message(message.chat.id, f'*Итого* за месяц:\n {get_month_stat(session)}', parse_mode='Markdown')
+    session.close()
 
 
 def create_conversation(session):
@@ -72,6 +89,7 @@ def create_purchases(session, conversation, message, purchases, status=Purchase.
             expense_id=purchase_info.expense_id
         )
         purchases_items.append(purchase)
+    conversation.bot_message_id = message.message_id + len(purchases) + 1
     session.add_all(purchases_items)
     session.commit()
 
@@ -121,7 +139,8 @@ def simple_user_input(message):
         if purchase_info.expense_id:
             bot.send_message(
                 message.chat.id,
-                make_purchase_report_message(purchase_info)
+                make_purchase_report_message(purchase_info),
+                parse_mode='Markdown',
             )
         else:
             bot.send_message(
@@ -132,27 +151,46 @@ def simple_user_input(message):
                 f'"{purchase_info.note}".',
                 reply_markup=get_callback_reply_markup(purchase_info.position, message.message_id, SIMPLE_TYPE))
 
-    bot.send_message(message.chat.id, f'Потраченно за месяц с учетом новых трат: {get_month_stat(session)} BYN.')
+    bot.send_message(message.chat.id, f'Потраченно за месяц с учетом новых трат:\n {get_month_stat(session)}', parse_mode='Markdown')
     session.commit()
     session.close()
 
 def get_month_stat(session):
+    session.commit()  # если вдруг в сессии удалился расход
     month_start = datetime.now().\
         replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    purchase = session.query(func.sum(Purchase.prise).label('total_price')).\
-        filter(Purchase.epoch >= month_start).scalar().normalize()
-    return purchase
+    stats = dict(session.query(Purchase.currency, func.sum(Purchase.prise)).\
+        filter(Purchase.epoch >= month_start).group_by(Purchase.currency).all())
+    stats = [f'*{str(currency if currency != "BYR" else "BYN")}*: _{str(round(currency_total_summ, 2))}_'
+             for currency, currency_total_summ in stats.items()]
+    if stats:
+        return '\n' + '\n'.join(stats)
+    return 0  # если это первая стата месяца
 
 
 def make_purchase_report_message(purchase):
     category_name = dict(EXPENSES).get(str(purchase.expense_id))
-    return f'Учтено: {purchase.prise.normalize()} {_validate_currency_code(purchase.currency, faked_byn=False)} - ' \
+    price = round(purchase.prise, 2) if not isinstance(purchase.prise, str) else purchase.prise
+    return f'*Учтено*: {price} {_validate_currency_code(purchase.currency, faked_byn=False)} - ' \
            f'{purchase.note}. ' \
-           f'Категория: "{category_name.capitalize()}".'
+           f'*Категория*: "{category_name.capitalize()}".'
 
 def make_expense_report_reply(month_sum, conversation_open_purchases_count):
-    return f'Потраченно за месяц с учетом новых трат: {month_sum} BYN. ' \
-           f'Необходимо выбрать категории трат для {conversation_open_purchases_count - 1} трат.'
+    positive_open_conversation_purchases_count = conversation_open_purchases_count - 1
+    if positive_open_conversation_purchases_count:
+        reply = f'Потраченно за месяц с учетом новых расходов:\n {month_sum}.' \
+                f'\nНеобходимо выбрать категорий расходов - {positive_open_conversation_purchases_count}.'
+    else:
+        reply = f'*Итого* за месяц:\n {month_sum}'
+    return reply
+
+def get_conversation_open_purchases_count(session, conversation):
+    session.commit()
+    return Query(Purchase). \
+        with_session(session=session). \
+        join(Conversation.purchases). \
+        filter_by(status=Purchase.STATUS_OPEN, conversation_id=conversation.id).count()
+
 
 @authorise
 @bot.callback_query_handler(func=lambda call: call.data.startswith(u's'))
@@ -165,34 +203,53 @@ def reply_to_simple_choice(call):
         user_message_id=message_id,
         position=position,
     ).with_session(session=session).one()
-    purchase.expense_id = expense_id
-    purchase.status = Purchase.STATUS_CLOSED
 
-    conversation = Query(Conversation).\
-        with_session(session=session).\
-        get(purchase.conversation_id)
-    bot.edit_message_text(make_purchase_report_message(purchase), call.message.chat.id, purchase.bot_message_id)
-
-    conversation_open_purchases_count = Query(Purchase).\
+    conversation = Query(Conversation). \
         with_session(session=session). \
-        join(Conversation.purchases).\
-        filter_by(status=Purchase.STATUS_OPEN, conversation_id=conversation.id).count()
+        get(purchase.conversation_id)
 
-    is_processed_conversation = conversation_open_purchases_count == 1
-    month_sum = get_month_stat(session)
-    if is_processed_conversation:
-        conversation.status = Conversation.STATUS_CLOSED
-        bot.edit_message_text(
-            f'Потраченно всего за месяц: {month_sum} {_validate_currency_code(purchase.currency, faked_byn=False)}.',
-            call.message.chat.id,
-            conversation.bot_message_id,
-        )
+    if  expense_id == UI_CANCEL_INDEX:
+        purchase = Query(Purchase).filter_by(
+            user_message_id=message_id,
+            position=position,
+        ).join(Conversation.purchases).with_session(session=session).one()
+        Query(Purchase).filter_by(
+            id=purchase.id,
+        ).with_session(session=session).delete()
+
+        conversation_purchases_count = purchase.conversation.purchases_count
+        if conversation_purchases_count:
+            bot.edit_message_text(
+                make_expense_report_reply(get_month_stat(session), get_conversation_open_purchases_count(session, conversation)),
+                call.message.chat.id,
+                conversation.bot_message_id,
+                parse_mode='Markdown',
+            )
+        else:
+            bot.delete_message(call.message.chat.id, purchase.conversation.bot_message_id)
+        bot.delete_message(call.message.chat.id, purchase.bot_message_id)
     else:
-        bot.edit_message_text(
-            make_expense_report_reply(month_sum, conversation_open_purchases_count),
-            call.message.chat.id,
-            conversation.bot_message_id,
-        )
+        purchase.expense_id = expense_id
+        purchase.status = Purchase.STATUS_CLOSED
+
+        bot.edit_message_text(make_purchase_report_message(purchase), call.message.chat.id, purchase.bot_message_id, parse_mode='Markdown')
+
+        is_processed_conversation = get_conversation_open_purchases_count(session, conversation) == 1
+        if is_processed_conversation:
+            conversation.status = Conversation.STATUS_CLOSED
+            bot.edit_message_text(
+                f'*Итого* за месяц:\n {get_month_stat(session)}',
+                call.message.chat.id,
+                conversation.bot_message_id,
+                parse_mode='Markdown'
+            )
+        else:
+            bot.edit_message_text(
+                make_expense_report_reply(get_month_stat(session), get_conversation_open_purchases_count(session, conversation)),
+                call.message.chat.id,
+                conversation.bot_message_id,
+                parse_mode='Markdown',
+            )
     session.commit()
     session.close()
 
