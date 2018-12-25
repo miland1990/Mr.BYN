@@ -1,6 +1,4 @@
 # coding: utf-8
-from __future__ import absolute_import, unicode_literals, division, print_function
-
 from constants import UI_CANCEL_INDEX, RE_SIMPLE
 from entity import SimpleExpenseMatch
 
@@ -38,11 +36,11 @@ class SimpleInputUsecase:
 
         unchoosen_categories_count = 0
         for purchase in self.dao.create_purchases(matched_expenses):
-            if purchase.expense_id:
+            if purchase.expense:
                 self.speaker.send_simple_message(
                     text=self.text_maker.get_purchase_auto_message(
                         purchase_id=purchase.id,
-                        price=purchase.price,
+                        price=purchase.rounded_price,
                         currency_code=purchase.currency_code,
                         note=purchase.note,
                         category_name=purchase.category_name,
@@ -50,8 +48,8 @@ class SimpleInputUsecase:
                 )
             else:
                 unchoosen_categories_count += 1
-                text = self.text_maker.set_purchase_category(
-                    price=purchase.price,
+                text = self.text_maker.set_purchase_expense(
+                    price=purchase.rounded_price,
                     currency_code=purchase.currency_code,
                     note=purchase.note,
                 )
@@ -81,13 +79,13 @@ class SimpleInputCallbackUsecase:
         self.text_maker = text_maker
         self.statist = statist
 
-    def execute(self, category_id):
+    def execute(self, expense):
 
-        if category_id == UI_CANCEL_INDEX:
+        if expense == UI_CANCEL_INDEX:
             self.dao.delete_current_purchase()
             self.speaker.edit_purchase_bot_message(
                 new_text=self.text_maker.get_deleted_purchase_report(
-                    price=self.dao.purchase.price,
+                    price=self.dao.purchase.rounded_price,
                     currency_code=self.dao.purchase.currency,
                     note=self.dao.purchase.note,
                 ),
@@ -100,11 +98,11 @@ class SimpleInputCallbackUsecase:
                 ),
             )
         else:
-            self.dao.set_purchase_category(category_id=category_id)
+            self.dao.set_purchase_category(expense=expense)
             self.speaker.edit_purchase_bot_message(
                 new_text=self.text_maker.get_purchase_unique_message(
                     purchase_id=self.dao.purchase.id,
-                    price=self.dao.purchase.price,
+                    price=self.dao.purchase.rounded_price,
                     currency_code=self.dao.purchase.currency,
                     note=self.dao.purchase.note,
                     category_name=self.dao.purchase.category_name,

@@ -11,6 +11,7 @@ def get_engine():
 
 
 def db_make_session():
+    db_create_tables()
     session = sessionmaker(bind=get_engine(), autoflush=False)
     return session()
 
@@ -20,6 +21,6 @@ def db_create_tables():
     Перед началом работы бота следует запустить, чтобы создались таблицы БД.
     """
     # импортируем сюда модели
-    from models import Purchase, Conversation
+    from models import Purchase, Conversation, ExpenseCategory
     engine = get_engine()
     Base.metadata.create_all(engine)

@@ -1,8 +1,4 @@
 # coding: utf-8
-from __future__ import unicode_literals
-
-from collections import namedtuple
-
 import telebot
 
 from credentials import token
@@ -13,9 +9,6 @@ from services import BotSpeaker, TextMaker, SimpleCallbackDialogDAO, Statist, Si
 from usecases import SimpleInputCallbackUsecase, SimpleInputUsecase
 
 bot = telebot.TeleBot(token)
-
-_simple_input = namedtuple('_simple_input', 'prise,currency,note,expense_id,position') # лучше классами, а еще лучше создать нормальный класс
-_prior_sms_input = namedtuple('_prior_sms_input', 'epoch,prise,currency,note')  # здесь та же проблема
 
 # фичи
 # TODO: сделать командой конвертацию трат месяца к BYN или USD
@@ -31,14 +24,13 @@ _prior_sms_input = namedtuple('_prior_sms_input', 'epoch,prise,currency,note')  
 # TODO: добавить смайлики в выдачу
 
 # баги
-# TODO: плохо распознает в сплошном простом вводе числа, относящиеся не к цене
-# TODO: при множественном выборе может быть ситуация дублирования предпоследнего и последнего bot сообщения с итогом - откуда ошибка api логгируется
 # TODO: разобраться, почему не работают смс-ки
 
 # рефакторинг
-# TODO: сделать в чистой архитектуре
-# TODO: исправить prise на price в модели
 # TODO: более совершенный механизм отложенного удаления суммирующего сообщения завершенной беседы
+# TODO: обновить зависимости
+# TODO: добавить тесты
+# TODO: добавить аннотации типов и pylint
 
 
 @bot.message_handler(commands=[u'stat'])
@@ -94,7 +86,7 @@ def simple_user_input(message):
 def simple_callback_view(call):
 
     session = db_make_session()
-    callback_kind, user_message_id, conversation_position, category_id = call.data.split(DELIMETER)
+    callback_kind, user_message_id, conversation_position, expense = call.data.split(DELIMETER)
     dao = SimpleCallbackDialogDAO(
         session=session,
         user_message_id=user_message_id,
@@ -115,7 +107,7 @@ def simple_callback_view(call):
         text_maker=TextMaker,
         statist=statist
     )
-    usecase.execute(category_id=category_id)
+    usecase.execute(expense=expense)
 
     session.commit()
     session.close()

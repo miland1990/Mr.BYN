@@ -1,6 +1,4 @@
 # coding: utf-8
-from __future__ import absolute_import, unicode_literals, division, print_function
-
 from constants import CURRENCY_DEFAULT, NEW_BELARUSSIAN_RUBL_CODE
 
 

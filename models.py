@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy_utils.types import ChoiceType, CurrencyType
 
 from database import Base
-from constants import EXPENSES
+from constants import EXPENSES, OLD_BELARUSSIAN_RUBL_CODE, NEW_BELARUSSIAN_RUBL_CODE
 
 
 class Purchase(Base):
@@ -25,8 +25,7 @@ class Purchase(Base):
     )
     STATUS_CHOICES = (
         ('1', 'new'),
-        ('2', 'duplicated'),  # непонятный статус
-        ('3', 'closed'),
+        ('2', 'closed'),
     )
 
     id = Column(Integer, Sequence('id'), primary_key=True, autoincrement=True)
@@ -34,11 +33,11 @@ class Purchase(Base):
     user_message_id = Column(Integer)
     status = Column(ChoiceType(STATUS_CHOICES), default=STATUS_OPEN)
     position = Column(Integer)
-    currency = Column(CurrencyType, default='BYR')  # BYN в библиотеке еще не фигурирует
+    currency = Column(CurrencyType, default=OLD_BELARUSSIAN_RUBL_CODE)  # BYN в библиотеке еще не фигурирует
     user_id = Column(Integer)
     epoch = Column(TIMESTAMP())
-    prise = Column(Float(asdecimal=True))  # TODO: исправить написание перед релизом
-    expense_id = Column(Integer, ForeignKey('expsense.id'))  # TODO: нужно поправить на expense
+    price = Column(Float(asdecimal=True))
+    expense = Column(Integer, ForeignKey('expense_category.id'))
     conversation_id = Column(Integer, ForeignKey('conversation.id'))
     note = Column(String(200))
     conversation = relationship('Conversation', back_populates='purchases')
@@ -51,11 +50,11 @@ class Purchase(Base):
         return self.user_message_id + self.position
 
     @property
-    def price(self):
+    def rounded_price(self):
         """
         Цену округляем до двух знаков после запятой
         """
-        return round(self.prise, 2)
+        return round(self.price, 2)
 
     @property
     def currency_code(self):
@@ -63,11 +62,11 @@ class Purchase(Base):
         Костыль
         :return: 
         """
-        return self.currency if self.currency != "BYR" else "BYN"
+        return self.currency if self.currency != OLD_BELARUSSIAN_RUBL_CODE else NEW_BELARUSSIAN_RUBL_CODE
 
     @property
     def category_name(self):
-        return dict(EXPENSES).get(str(self.expense_id), "").capitalize()
+        return dict(EXPENSES).get(str(self.expense), "").capitalize()
 
 
 class Conversation(Base):
@@ -90,7 +89,6 @@ class Conversation(Base):
     id = Column(Integer, Sequence('id'), primary_key=True, autoincrement=True)
     purchases = relationship('Purchase', back_populates='conversation')  # реплика пользователя
     status = Column(ChoiceType(STATUS_CHOICES), default=STATUS_OPEN)
-    initial_purchase_count = Column(Integer)  # это нужно удалить
     bot_message_id = Column(Integer)
 
     @property
@@ -98,11 +96,11 @@ class Conversation(Base):
         return len(self.purchases)
 
 
-class Expense(Base):  # TODO: переименовать в категорию расхода
+class ExpenseCategory(Base):
     """
     Возможные статьи расходов.
     """
-    __tablename__ = 'expsense'
+    __tablename__ = 'expense_category'
 
     id = Column(Integer, Sequence('id'), primary_key=True, autoincrement=True)
     name = Column(ChoiceType(EXPENSES))

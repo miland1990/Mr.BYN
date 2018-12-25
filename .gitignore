@@ -1,4 +1,5 @@
 finance
+finance.db
 pytelegrambotapi/
 .idea/
 credentials.py

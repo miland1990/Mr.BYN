@@ -15,12 +15,6 @@ CURRENCY_DEFAULT = 'BYR'
 OLD_BELARUSSIAN_RUBL_CODE = 'BYR'
 NEW_BELARUSSIAN_RUBL_CODE = 'BYN'
 
-# UI_MESSAGE_DUPLICATE = 'Платеж ({}) уже был засчитан.'
-# UI_MESSAGE_MONTH_STAT = 'Израсходовано за месяц: {} BYN.'
-# UI_MESSAGE_MONTH_THANK = 'Спасибо. ' + UI_MESSAGE_MONTH_STAT
-# UI_MESSAGE_INVALID = 'Введите корректно расход. Первым словом должна быть цена. Слова разделяются пробелами.'
-# UI_MESSAGE_CANCELED = 'Пользователь {} отменил ввод платежа.'
-# UI_MESSAGE_UNKNOWN_FORMAT = 'Внимание! Соообщение "{}" - не распознано. Введите расход вручную.'
 UI_CANCEL_BUTTON = 'отмена ввода'
 
 EXPENSE_COMMUNAL = 'коммуналка'

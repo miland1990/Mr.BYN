@@ -36,7 +36,7 @@ bot = telebot.TeleBot(token)
 # TODO: возможность просмотра статы за указанный период времени и сравнение с аналогичными тремя периодами
 
 PRIOR_RE_STR = r'Priorbank\. Karta (?:\d\*{3}\d{4}). (?P<datetime>.{17}). ' \
-               r'Oplata (?P<prise>\d*[.,]?\d*) (?P<currency>[\w+]{3}). (?P<place>[^\.]+).*'
+               r'Oplata (?P<price>\d*[.,]?\d*) (?P<currency>[\w+]{3}). (?P<place>[^\.]+).*'
 PRIOR_SMS_RE = re.compile(PRIOR_RE_STR)
 PRISE_RE = re.compile(r'^\d+?\.\d+?$')
 PRIOR_DATETIME_FORMAT = '%d-%m-%y %H:%M:%S'

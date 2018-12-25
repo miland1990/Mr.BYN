@@ -1,6 +1,4 @@
 # coding: utf-8
-from __future__ import absolute_import, unicode_literals, division, print_function
-
 from datetime import datetime
 
 import telebot
@@ -117,6 +115,8 @@ class TextMaker:
     @classmethod
     def format_month_stats(cls, groupped_stats):
         expenses = []
+        if not groupped_stats:
+            return ''
         for currency, summ in groupped_stats:
             expenses.append(cls.ONE_CURRENCY_REPORT.format(currency=currency, summ=summ))
         return ''.join(expenses)
@@ -142,7 +142,7 @@ class TextMaker:
             return cls.get_month_purchases_stats(groupped_stats=groupped_stats)
 
     @classmethod
-    def set_purchase_category(cls, price, currency_code, note):
+    def set_purchase_expense(cls, price, currency_code, note):
         return cls.PURCHASE_SET_CATEGORY_TEMPLATE.format(
             price=price,
             currency_code=currency_code,
@@ -181,7 +181,7 @@ class Statist:
 
     def get_current_month_stats(self):
         stats = self.session.\
-            query(Purchase.currency, func.sum(Purchase.prise)).\
+            query(Purchase.currency, func.sum(Purchase.price)).\
             filter(Purchase.epoch >= self._get_month_start()).\
             group_by(Purchase.currency).all()
 
@@ -252,9 +252,9 @@ class SimpleCallbackDialogDAO:
 
         self.session.commit()
 
-    def set_purchase_category(self, category_id):
+    def set_purchase_category(self, expense):
         self.decrement_open_purchases_of_conversation()
-        self.purchase.expense_id = category_id
+        self.purchase.expense = expense
 
         self.session.commit()
 
@@ -319,16 +319,16 @@ class SimpleInputDialogDAO:
         if no_menu_expense:
             return no_menu_expense
 
-        expense_queryset = self.session.query(Purchase).filter(
-            column('expense_id').
+        purchase_queryset = self.session.query(Purchase).filter(
+            column('expense').
                 isnot(None),
             column('note').
                 is_(note)
         )
-        dublicate_expense_count = expense_queryset.count()
+        dublicate_expense_count = purchase_queryset.count()
 
         if dublicate_expense_count >= REMEMBERED_EXPENSE_DUBLICATES_COUNT:
-            expense_category =  expense_queryset.order_by('-id').first().expense_id
+            expense_category =  purchase_queryset.order_by('-id').first().expense
 
         return expense_category
 
@@ -349,9 +349,9 @@ class SimpleInputDialogDAO:
                     currency=expense_match.currency,
                     user_id=self.user_id,
                     epoch=epoch,
-                    prise=expense_match.price,
+                    price=expense_match.price,
                     note=expense_match.note,
-                    expense_id=expense_category,
+                    expense=expense_category,
                 )
             )
 
