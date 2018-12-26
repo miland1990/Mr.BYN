@@ -7,8 +7,8 @@ from sqlalchemy.sql import func, column
 
 from credentials import token
 from constants import REPLY_EXPENSES, SIMPLE_TYPE, DELIMETER, NOTES_NEVER_NEED_MENU, \
-    REMEMBERED_EXPENSE_DUBLICATES_COUNT, OLD_BELARUSSIAN_RUBL_CODE, NEW_BELARUSSIAN_RUBL_CODE
-from models import Purchase, Conversation
+    REMEMBERED_EXPENSE_DUBLICATES_COUNT, OLD_BELARUSSIAN_RUBLE_CODE, NEW_BELARUSSIAN_RUBLE_CODE
+from models import Purchase, Conversation, PurchaseStatus, ConversationStatus
 
 
 class BotSpeaker:
@@ -234,7 +234,7 @@ class Statist:
         for currency, groupped_currency_summ in stats:
             currency_expenses.append(
                 (
-                    currency if currency != OLD_BELARUSSIAN_RUBL_CODE else NEW_BELARUSSIAN_RUBL_CODE,
+                    currency if currency != OLD_BELARUSSIAN_RUBLE_CODE else NEW_BELARUSSIAN_RUBLE_CODE,
                     round(groupped_currency_summ, 2)
                 )
             )
@@ -275,7 +275,7 @@ class SimpleExpenseCallbackDAO:
 
         self.conversation_open_purchases_count = Query(Purchase).with_session(session=self.session).\
             filter_by(
-            status=Purchase.STATUS_OPEN,
+            status=PurchaseStatus.open,
             conversation_id=self.conversation.id
         ).count()
 
@@ -292,12 +292,12 @@ class SimpleExpenseCallbackDAO:
         self.session.commit()
 
     def close_conversation(self):
-        self.conversation.status = Conversation.STATUS_CLOSED
+        self.conversation.status = ConversationStatus.closed
 
         self.session.commit()
 
     def close_purchase(self):
-        self.purchase.status = Purchase.STATUS_CLOSED
+        self.purchase.status = PurchaseStatus.closed
 
         self.session.commit()
 
@@ -368,7 +368,7 @@ class SimpleExpenseInputDAO:
         for expense_match in matched_expenses:
 
             expense_category = self.find_expense_category(expense_match.note)
-            status = Purchase.STATUS_CLOSED if expense_category else Purchase.STATUS_OPEN
+            status = PurchaseStatus.closed if expense_category else PurchaseStatus.open
             epoch = datetime.fromtimestamp(self.message_datetime)
 
             purchases.append(

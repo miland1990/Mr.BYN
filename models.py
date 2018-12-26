@@ -2,11 +2,25 @@
 from sqlalchemy import Column, Integer, Sequence, ForeignKey, TIMESTAMP, Float, String
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils.types import ChoiceType, CurrencyType
+from enum import Enum
 
 from database import Base
-from constants import EXPENSES, OLD_BELARUSSIAN_RUBL_CODE, NEW_BELARUSSIAN_RUBL_CODE
+from constants import EXPENSES, OLD_BELARUSSIAN_RUBLE_CODE, NEW_BELARUSSIAN_RUBLE_CODE
 
-# TODO: разобраться в стиле enum со свойствами классов
+
+class PurchaseInputKind(Enum):
+    simple = '1'
+    sms = '2'
+
+
+class PurchaseStatus(Enum):
+    open = '1'
+    closed = '2'
+
+
+class ConversationStatus(Enum):
+    open = '1'
+    closed = '2'
 
 
 class Purchase(Base):
@@ -15,27 +29,12 @@ class Purchase(Base):
     """
     __tablename__ = 'purchase'
 
-    KIND_SIMPLE = 1
-    KIND_SMS = 2
-
-    STATUS_OPEN = 1
-    STATUS_CLOSED = 2
-
-    KIND_CHOICES = (
-        ('1', 'simple'),
-        ('2', 'sms'),
-    )
-    STATUS_CHOICES = (
-        ('1', 'new'),
-        ('2', 'closed'),
-    )
-
     id = Column(Integer, Sequence('id'), primary_key=True, autoincrement=True)
-    kind = Column(ChoiceType(KIND_CHOICES), default=KIND_SIMPLE)
+    kind = Column(ChoiceType(PurchaseInputKind), default=PurchaseInputKind.simple)
     user_message_id = Column(Integer)
-    status = Column(ChoiceType(STATUS_CHOICES), default=STATUS_OPEN)
+    status = Column(ChoiceType(PurchaseStatus), default=PurchaseStatus.open)
     position = Column(Integer)
-    currency = Column(CurrencyType, default=OLD_BELARUSSIAN_RUBL_CODE)
+    currency = Column(CurrencyType, default=OLD_BELARUSSIAN_RUBLE_CODE)
     user_id = Column(Integer)
     epoch = Column(TIMESTAMP())
     price = Column(Float(asdecimal=True))
@@ -63,7 +62,7 @@ class Purchase(Base):
         """
         Костыль библиотеки, в которой нет BYN кода.
         """
-        return NEW_BELARUSSIAN_RUBL_CODE if self.currency == OLD_BELARUSSIAN_RUBL_CODE else self.currency
+        return NEW_BELARUSSIAN_RUBLE_CODE if self.currency == OLD_BELARUSSIAN_RUBLE_CODE else self.currency
 
     @property
     def category_name(self):
@@ -79,17 +78,9 @@ class Conversation(Base):
     """
     __tablename__ = 'conversation'
 
-    STATUS_OPEN = 1
-    STATUS_CLOSED = 2
-
-    STATUS_CHOICES = (
-        ('1', 'open'),
-        ('2', 'closed'),
-    )
-
     id = Column(Integer, Sequence('id'), primary_key=True, autoincrement=True)
     purchases = relationship('Purchase', back_populates='conversation')
-    status = Column(ChoiceType(STATUS_CHOICES), default=STATUS_OPEN)
+    status = Column(ChoiceType(ConversationStatus), default=ConversationStatus.open)
     bot_message_id = Column(Integer)
 
     @property
