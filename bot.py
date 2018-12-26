@@ -5,73 +5,55 @@ from credentials import token
 from constants import RE_SIMPLE_STR, SIMPLE_TYPE, DELIMETER
 from utils import authorise
 from database import db_make_session
-from services import BotSpeaker, TextMaker, SimpleCallbackDialogDAO, Statist, SimpleInputDialogDAO
-from usecases import SimpleInputCallbackUsecase, SimpleInputUsecase
+from services import BotSpeaker, TextMaker, SimpleExpenseCallbackDAO, Statist, SimpleExpenseInputDAO
+from usecases import SimpleInputCallbackUsecase, SimpleExpenseInputUsecase
 
 bot = telebot.TeleBot(token)
-
-# фичи
-# TODO: сделать командой конвертацию трат месяца к BYN или USD
-# TODO: сделать возможность заблаговременно в сообщении указать, что необходим ручной выбор категории
-# TODO: тэггирование о том, что этот расход не должен учитываться с статистике месяца (черная категория)
-# TODO: сделать возможность тэггирования расхода, чтобы именно по нему можно было узнать стату
-# TODO: сделать команду для тэггированного расхода
-# TODO: продумать возможность удобного добавления id пользователя, чтобы можно было авторизовываться
-# TODO: возможность переноса траты  на следующий месяц
-# TODO: возможность отмены траты по id траты  (ее нужно дописать в мессагу)
-# TODO: варнинги об увеличении трат за аналогичные периоды в прошлые периоды
-# TODO: возможность изменить категорию уже запомненного варианта
-# TODO: добавить смайлики в выдачу
-
-# баги
-# TODO: разобраться, почему не работают смс-ки
-
-# рефакторинг
-# TODO: более совершенный механизм отложенного удаления суммирующего сообщения завершенной беседы
-# TODO: добавить тесты
-# TODO: добавить аннотации типов и pylint
 
 
 @bot.message_handler(commands=[u'stat'])
 @authorise
-def current_stats(message):
+def get_month_stat(message):
+
     session = db_make_session()
     statist = Statist(session=session)
 
     bot.send_message(
-        message.chat.id,
-        TextMaker.get_month_purchases_stats(
+        chat_id=message.chat.id,
+        text=TextMaker.get_month_stat_report(
             statist.get_current_month_stats()
         ),
         parse_mode='Markdown'
     )
+
     session.close()
 
 
 @bot.message_handler(regexp=RE_SIMPLE_STR)
 @authorise
 def simple_user_input(message):
+
     session = db_make_session()
-    dao = SimpleInputDialogDAO(
+    dao = SimpleExpenseInputDAO(
         session=session,
         message_id=message.message_id,
         user_id=message.from_user.id,
         message_datetime=message.date,
     )
-    bot_speaker = BotSpeaker(
+    speaker = BotSpeaker(
+        session=session,
         chat_id=message.chat.id,
         message_id=message.message_id,
-        session=session,
         conversation=dao.conversation,
     )
     statist = Statist(session=session)
 
-    usecase = SimpleInputUsecase(
+    usecase = SimpleExpenseInputUsecase(
         session=session,
         dao=dao,
-        speaker=bot_speaker,
-        text_maker=TextMaker,
+        speaker=speaker,
         statist=statist,
+        text_maker=TextMaker,
         message_text=message.text,
     )
     usecase.execute()
@@ -85,16 +67,16 @@ def simple_user_input(message):
 def simple_callback_view(call):
 
     session = db_make_session()
-    callback_kind, user_message_id, conversation_position, expense = call.data.split(DELIMETER)
-    dao = SimpleCallbackDialogDAO(
+    expense_input_kind, message_id, position, expense = call.data.split(DELIMETER)
+    dao = SimpleExpenseCallbackDAO(
         session=session,
-        user_message_id=user_message_id,
-        position=conversation_position,
+        message_id=message_id,
+        position=position,
     )
     speaker = BotSpeaker(
+        session=session,
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        session=session,
         conversation=dao.conversation,
     )
     statist = Statist(session=session)

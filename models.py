@@ -6,6 +6,8 @@ from sqlalchemy_utils.types import ChoiceType, CurrencyType
 from database import Base
 from constants import EXPENSES, OLD_BELARUSSIAN_RUBL_CODE, NEW_BELARUSSIAN_RUBL_CODE
 
+# TODO: разобраться в стиле enum со свойствами классов
+
 
 class Purchase(Base):
     """
@@ -33,7 +35,7 @@ class Purchase(Base):
     user_message_id = Column(Integer)
     status = Column(ChoiceType(STATUS_CHOICES), default=STATUS_OPEN)
     position = Column(Integer)
-    currency = Column(CurrencyType, default=OLD_BELARUSSIAN_RUBL_CODE)  # BYN в библиотеке еще не фигурирует
+    currency = Column(CurrencyType, default=OLD_BELARUSSIAN_RUBL_CODE)
     user_id = Column(Integer)
     epoch = Column(TIMESTAMP())
     price = Column(Float(asdecimal=True))
@@ -52,17 +54,16 @@ class Purchase(Base):
     @property
     def rounded_price(self):
         """
-        Цену округляем до двух знаков после запятой
+        Цену округляем до двух знаков после запятой.
         """
         return round(self.price, 2)
 
     @property
     def currency_code(self):
         """
-        Костыль
-        :return: 
+        Костыль библиотеки, в которой нет BYN кода.
         """
-        return self.currency if self.currency != OLD_BELARUSSIAN_RUBL_CODE else NEW_BELARUSSIAN_RUBL_CODE
+        return NEW_BELARUSSIAN_RUBL_CODE if self.currency == OLD_BELARUSSIAN_RUBL_CODE else self.currency
 
     @property
     def category_name(self):
@@ -87,7 +88,7 @@ class Conversation(Base):
     )
 
     id = Column(Integer, Sequence('id'), primary_key=True, autoincrement=True)
-    purchases = relationship('Purchase', back_populates='conversation')  # реплика пользователя
+    purchases = relationship('Purchase', back_populates='conversation')
     status = Column(ChoiceType(STATUS_CHOICES), default=STATUS_OPEN)
     bot_message_id = Column(Integer)
 

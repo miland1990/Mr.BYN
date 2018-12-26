@@ -1,6 +1,6 @@
 # coding: utf-8
-from credentials import ALLOWED_USERS_IDS
 from functools import wraps
+from credentials import ALLOWED_USERS_IDS
 
 
 def authorise(func):
