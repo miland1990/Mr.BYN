@@ -7,7 +7,7 @@ Base = declarative_base()
 
 
 def get_engine():
-    return create_engine(f'sqlite+pysqlite:///finance.db')
+    return create_engine('sqlite+pysqlite:///finance.db')
 
 
 def db_make_session():

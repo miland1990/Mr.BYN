@@ -40,7 +40,13 @@ class BotSpeaker:
         """
         keyboard = telebot.types.InlineKeyboardMarkup()
         for expense_id, button_name in REPLY_EXPENSES:
-            data = f'{reply_type}{DELIMETER}{message_id}{DELIMETER}{position}{DELIMETER}{expense_id}'
+            data = '{reply_type}{DELIMETER}{message_id}{DELIMETER}{position}{DELIMETER}{expense_id}'.format(
+                reply_type=reply_type,
+                message_id=message_id,
+                position=position,
+                expense_id=expense_id,
+                DELIMETER=DELIMETER,
+            )
             callback_button = telebot.types.InlineKeyboardButton(text=button_name, callback_data=data)
             keyboard.add(callback_button)
         return keyboard
