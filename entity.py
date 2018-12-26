@@ -1,5 +1,5 @@
 # coding: utf-8
-from constants import CURRENCY_DEFAULT, NEW_BELARUSSIAN_RUBLE_CODE
+from constants import OLD_BELARUSSIAN_RUBLE_CODE, NEW_BELARUSSIAN_RUBLE_CODE
 
 
 class SimpleExpenseMatch:
@@ -23,6 +23,6 @@ class SimpleExpenseMatch:
     @property
     def currency(self):
         if not self._currency or self._currency == NEW_BELARUSSIAN_RUBLE_CODE:
-            return CURRENCY_DEFAULT
+            return OLD_BELARUSSIAN_RUBLE_CODE
         else:
             return self._currency.upper()

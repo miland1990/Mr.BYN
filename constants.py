@@ -1,16 +1,8 @@
 # coding: utf-8
 import re
 
-# RE_PRIOR_SMS_STR = r'Priorbank\. Karta (?:\d\*{3}\d{4}). (?P<epoch>.{17}). Oplata (?P<prise>\d*[.,]?\d*) (?P<currency>[\w+]{3}). (?P<note>[^\.]+).*'
-# RE_PRIOR_SMS = re.compile(RE_PRIOR_SMS_STR)
-
-# RE_SIMPLE_STR = r'(?P<prise>[\d\.\,ю]+)(?:\s+)?(?P<currency>USD|BYR|BYN|RUB|UAH|EUR|PLN)?(?:\s+)?(?P<note>[^\d\.\,]+[^\d\.\,\s])'
-RE_SIMPLE_STR = r'(?P<price>[\d\.\,ю]+)(?:\s+)?(?P<currency>USD|BYR|BYN|RUB|UAH|EUR|PLN)?(?:\s+)?(?P<note>[\w].*?)(?:  |$|;)'  # в одной линии можно разделять траты лишь сдвоенными пробелами либо ";"
+RE_SIMPLE_STR = r'(?P<price>[\d\.\,ю]+)(?:\s+)?(?P<currency>USD|BYR|BYN|RUB|UAH|EUR|PLN)?(?:\s+)?(?P<note>[\w].*?)(?:  |$|;)'
 RE_SIMPLE = re.compile(RE_SIMPLE_STR, re.U | re.I)
-
-# PRIOR_DATETIME_FORMAT = '%d-%m-%y %H:%M:%S'
-
-CURRENCY_DEFAULT = 'BYR'
 
 OLD_BELARUSSIAN_RUBLE_CODE = 'BYR'
 NEW_BELARUSSIAN_RUBLE_CODE = 'BYN'
