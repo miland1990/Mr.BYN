@@ -58,7 +58,7 @@ class SimpleExpenseInputUsecase:
                     position=purchase.position,
                 )
         self.speaker.send_simple_input_message(text=self.text_maker.get_conversation_intermediate_report(
-            groupped_stats=self.statist.get_current_month_stats(),
+            grouped_stats=self.statist.get_current_month_stats(),
             uncategorized_purchases=uncategorized_purchases)
         )
 
@@ -93,7 +93,7 @@ class SimpleInputCallbackUsecase:
             )
             self.speaker.edit_conversation_bot_message(
                 new_text=self.text_maker.get_conversation_intermediate_report(
-                    groupped_stats=self.statist.get_current_month_stats(),
+                    grouped_stats=self.statist.get_current_month_stats(),
                     uncategorized_purchases=self.dao.conversation_open_purchases_count
                 ),
             )
@@ -113,14 +113,14 @@ class SimpleInputCallbackUsecase:
                 self.dao.close_conversation()
                 self.speaker.edit_conversation_bot_message(
                     new_text=self.text_maker.get_month_stat_report(
-                        groupped_stats=self.statist.get_current_month_stats()
+                        grouped_stats=self.statist.get_current_month_stats()
                     ),
                 )
             else:
                 self.speaker.edit_conversation_bot_message(
                     new_text=self.text_maker.get_conversation_intermediate_report(
-                        self.statist.get_current_month_stats(),
-                        self.dao.conversation_open_purchases_count
+                        grouped_stats=self.statist.get_current_month_stats(),
+                        uncategorized_purchases=self.dao.conversation_open_purchases_count
                     ),
                 )
             self.dao.close_purchase()

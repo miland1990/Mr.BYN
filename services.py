@@ -13,8 +13,7 @@ from models import Purchase, Conversation, PurchaseStatus, ConversationStatus
 
 class BotSpeaker:
     """
-    Сервис отвечает за отправку, редактирование, удаление сообщения в чате.
-    Имеет встроенный функционал построения интерактивного меню выбора возможных категорий расходов.
+    Sends, edit, delete messages in a chat. The service builds interactive menu for choosing purchase expense.
     """
 
     MARKDOWN = 'Markdown'
@@ -37,7 +36,7 @@ class BotSpeaker:
 
     def _get_callback_markup(self, position, message_id, expense_input_kind):
         """
-        Построение интерактивного меню выбора категории расхода.
+        Build interactive menu for choosing purchase expense.
         """
         keyboard = telebot.types.InlineKeyboardMarkup()
         for expense_id, button_name in REPLY_EXPENSES:
@@ -61,6 +60,9 @@ class BotSpeaker:
         )
 
     def send_simple_input_message(self, text):
+        """
+        Send new message to chat.
+        """
         self.bot.send_message(
             chat_id=self.chat_id,
             text=text,
@@ -68,6 +70,9 @@ class BotSpeaker:
         )
 
     def send_choose_expense_category_message(self, text, position=1, expense_input_kind=SIMPLE_TYPE):
+        """
+        Send interactive menu for choosing expense.
+        """
         self.bot.send_message(
             chat_id=self.chat_id,
             text=text,
@@ -80,18 +85,25 @@ class BotSpeaker:
         )
 
     def delete_message(self, message_id):
+        """
+        Delete message from chat.
+        """
         self.bot.delete_message(
             chat_id=self.chat_id,
             message_id=message_id,
         )
 
     def edit_purchase_bot_message(self, new_text, purchase_message_id):
+        """Edit message in chat. Message should have changes."""
         self._edit_message(
             new_text=new_text,
             message_id=purchase_message_id,
         )
 
     def edit_conversation_bot_message(self, new_text):
+        """
+        Edit conversation message
+        """
         return self._edit_message(
             new_text=new_text,
             message_id=self.conversation.bot_message_id
@@ -99,10 +111,13 @@ class BotSpeaker:
 
 
 class TextMaker:
+    """
+    Make human-readable messages for chat.
+    """
 
     MONTH_PURCHASES_SUMM_TEMPLATE = '''
 *Структура расходов* за месяц:
-{groupped_stats}
+{grouped_stats}
     '''
 
     PURCHASE_REPORT_AUTO_TEMPLATE = '''
@@ -133,26 +148,26 @@ class TextMaker:
     '''
 
     @classmethod
-    def get_month_stat_report(cls, groupped_stats):
+    def get_month_stat_report(cls, grouped_stats):
         """
-        Сообщение о суммарной трате за текущий месяц с группировкой  по валютам.
+        Make message with month statistics grouped by currencies.
         """
         return cls.MONTH_PURCHASES_SUMM_TEMPLATE.\
-            format(groupped_stats=cls._format_month_stats(groupped_stats))
+            format(grouped_stats=cls._format_month_stats(grouped_stats))
 
     @classmethod
-    def _format_month_stats(cls, groupped_stats):
+    def _format_month_stats(cls, grouped_stats):
         expenses = []
-        if not groupped_stats:
+        if not grouped_stats:
             return ''
-        for currency, summ in groupped_stats:
+        for currency, summ in grouped_stats:
             expenses.append(cls.ONE_CURRENCY_REPORT.format(currency=currency, summ=summ))
         return ''.join(expenses)
 
     @classmethod
     def get_delete_purchase_report(cls, price, currency_code, note):
         """
-        Сообщение с подробной информацией об отмененном расходе (при  нажатии в меню выбора категорий - 'отмена')
+        Make detailed message about deleted purchase (cancel button submit).
         """
         return cls.DELETE_PURCHASE_REPORT.format(
             price=price,
@@ -161,7 +176,7 @@ class TextMaker:
         )
 
     @classmethod
-    def get_conversation_intermediate_report(cls, groupped_stats, uncategorized_purchases):
+    def get_conversation_intermediate_report(cls, grouped_stats, uncategorized_purchases):
         """
         Промежуточный итог под всеми меню выбора категорий расходов одного ввода траты(трат), где
         упоминается сумма за месяц с текущими тратами и указание количества трат, которым нужно
@@ -170,11 +185,11 @@ class TextMaker:
         if uncategorized_purchases:
             return cls.MULTIPLE_PURCHASES_GROUP_CHOOSING_INTERMEDIATE_TEMPLATE.\
                 format(
-                    groupped_stats=cls._format_month_stats(groupped_stats),
+                    groupped_stats=cls._format_month_stats(grouped_stats),
                     uncategorized_purchases=uncategorized_purchases,
                 )
         else:
-            return cls.get_month_stat_report(groupped_stats=groupped_stats)
+            return cls.get_month_stat_report(grouped_stats=grouped_stats)
 
     @classmethod
     def set_purchase_expense(cls, price, currency_code, note):
