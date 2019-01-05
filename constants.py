@@ -4,6 +4,12 @@ import re
 RE_SIMPLE_STR = r'(?P<price>[\d\.\,ю]+)(?:\s+)?(?P<currency>USD|BYR|BYN|RUB|UAH|EUR|PLN)?(?:\s+)?(?P<note>[\w].*?)(?:  |$|;)'
 RE_SIMPLE = re.compile(RE_SIMPLE_STR, re.U | re.I)
 
+RE_REMOVE_PURCHASE_STR = r'remove|rm|del(?:\s+)?(?P<purchase_id>[\d]+)'
+RE_REMOVE_PURCHASE = re.compile(RE_REMOVE_PURCHASE_STR, re.U | re.I)
+
+RE_INT_STR = r'(?P<integer>[\d]+)'
+RE_INT = re.compile(RE_INT_STR, re.U | re.I)
+
 OLD_BELARUSSIAN_RUBLE_CODE = 'BYR'
 NEW_BELARUSSIAN_RUBLE_CODE = 'BYN'
 

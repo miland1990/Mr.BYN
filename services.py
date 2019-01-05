@@ -59,7 +59,7 @@ class BotSpeaker:
             parse_mode=self.parse_mode,
         )
 
-    def send_simple_input_message(self, text):
+    def send_new_message(self, text):
         """
         Send new message to chat.
         """
@@ -143,8 +143,16 @@ class TextMaker:
     ONE_CURRENCY_REPORT = '''
 *{currency}*: {summ}'''
 
-    DELETE_PURCHASE_REPORT = '''
+    DECLINE_PURCHASE_REPORT = '''
 *Отменен* расход: {price} {currency_code} - "{note}".
+    '''
+
+    DELETED_PURCHASE_REPORT = '''
+*Удален* расход: {price} {currency_code} - "{note}"*(id={purchase_id})*.
+    '''
+
+    NOT_FOUND_PURCHASE_REPORT = '''
+Расход *id={purchase_id}* не найден.
     '''
 
     @classmethod
@@ -169,7 +177,7 @@ class TextMaker:
         """
         Make detailed message about deleted purchase (cancel button submit).
         """
-        return cls.DELETE_PURCHASE_REPORT.format(
+        return cls.DECLINE_PURCHASE_REPORT.format(
             price=price,
             currency_code=currency_code,
             note=note
@@ -228,6 +236,22 @@ class TextMaker:
             purchase_id=purchase_id,
         )
 
+    @classmethod
+    def get_deleted_message_report(cls, price, currency_code, note, purchase_id):
+        """
+        Notificate about deleted purhcase from db.
+        """
+        return cls.DELETED_PURCHASE_REPORT.format(
+            price=price,
+            currency_code=currency_code,
+            note=note,
+            purchase_id=purchase_id,
+        )
+
+    @classmethod
+    def get_not_found_purchase_report(cls, purchase_id):
+        return cls.NOT_FOUND_PURCHASE_REPORT.format(purchase_id=purchase_id)
+
 
 class Statist:
     def __init__(
@@ -258,7 +282,7 @@ class Statist:
         return currency_expenses
 
 
-class SimpleExpenseCallbackDAO:
+class SimpleExpenseCallbackProcessor:
 
     def __init__(
             self,
@@ -324,7 +348,42 @@ class SimpleExpenseCallbackDAO:
         return self.conversation_open_purchases_count == 0
 
 
-class SimpleExpenseInputDAO:
+class ConversationMixin:
+
+    def create_conversation(self, status=ConversationStatus.open):
+        conversation = Conversation(status=status)
+
+        self.session.add(conversation)
+        self.session.commit()
+
+        return conversation
+
+
+class ExpenseEditorProcessor(ConversationMixin):
+
+    def __init__(
+            self,
+            session,
+    ):
+        self.session = session
+        self.conversation = self.create_conversation(
+            status=ConversationStatus.closed
+        )
+
+    def get_purchase_data(self, purchase_id):
+        purchase = Query(Purchase).with_session(session=self.session).filter_by(id=purchase_id).first()
+        if purchase:
+            return purchase.rounded_price, purchase.currency_code, purchase.note, purchase_id
+        else:
+            return None, None, None, None
+
+    def remove_purhcases_by_ids(self, ids):
+        ids = tuple(map(int, ids))
+        Query(Purchase).with_session(session=self.session). \
+            filter(Purchase.id.in_(ids)).delete(synchronize_session=False)
+
+
+class SimpleExpenseInputProcessor(ConversationMixin):
 
     def __init__(
             self,
@@ -338,14 +397,6 @@ class SimpleExpenseInputDAO:
         self.user_id = user_id
         self.message_datetime = message_datetime
         self.conversation = self.create_conversation()
-
-    def create_conversation(self):
-        conversation = Conversation()
-
-        self.session.add(conversation)
-        self.session.commit()
-
-        return conversation
 
     @staticmethod
     def _get_no_menu_expense(note):

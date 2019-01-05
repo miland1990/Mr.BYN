@@ -2,11 +2,11 @@
 import telebot
 
 from credentials import token
-from constants import RE_SIMPLE_STR, SIMPLE_TYPE, DELIMETER
+from constants import RE_SIMPLE_STR, SIMPLE_TYPE, DELIMETER, RE_REMOVE_PURCHASE_STR
 from utils import authorise
 from database import db_make_session
-from services import BotSpeaker, TextMaker, SimpleExpenseCallbackDAO, Statist, SimpleExpenseInputDAO
-from usecases import SimpleInputCallbackUsecase, SimpleExpenseInputUsecase
+from services import BotSpeaker, TextMaker, SimpleExpenseCallbackProcessor, Statist, SimpleExpenseInputProcessor, ExpenseEditorProcessor
+from usecases import SimpleInputCallbackUsecase, SimpleExpenseInputUsecase, PurchaseDeleteUseCase
 
 bot = telebot.TeleBot(token)
 
@@ -29,12 +29,43 @@ def get_month_stat(message):
     session.close()
 
 
+@bot.message_handler(regexp=RE_REMOVE_PURCHASE_STR)
+@authorise
+def remove_purhcase(message):
+
+    session = db_make_session()
+
+    processor = ExpenseEditorProcessor(session=session)
+
+    speaker = BotSpeaker(
+        session=session,
+        chat_id=message.chat.id,
+        message_id=message.message_id,  # в данном юзкейсе не нужно
+        conversation=processor.conversation,  # в данном юзкейсе не нужно
+    )
+
+    statist = Statist(session=session)
+
+    usecase = PurchaseDeleteUseCase(
+        session=session,
+        processor=processor,
+        speaker=speaker,
+        statist=statist,
+        text_maker=TextMaker,
+        message_text=message.text,
+    )
+    usecase.execute()
+
+    session.commit()
+    session.close()
+
+
 @bot.message_handler(regexp=RE_SIMPLE_STR)
 @authorise
 def simple_user_input(message):
 
     session = db_make_session()
-    dao = SimpleExpenseInputDAO(
+    processor = SimpleExpenseInputProcessor(
         session=session,
         message_id=message.message_id,
         user_id=message.from_user.id,
@@ -44,13 +75,13 @@ def simple_user_input(message):
         session=session,
         chat_id=message.chat.id,
         message_id=message.message_id,
-        conversation=dao.conversation,
+        conversation=processor.conversation,
     )
     statist = Statist(session=session)
 
     usecase = SimpleExpenseInputUsecase(
         session=session,
-        dao=dao,
+        processor=processor,
         speaker=speaker,
         statist=statist,
         text_maker=TextMaker,
@@ -68,7 +99,7 @@ def simple_callback_view(call):
 
     session = db_make_session()
     expense_input_kind, message_id, position, expense = call.data.split(DELIMETER)
-    dao = SimpleExpenseCallbackDAO(
+    processor = SimpleExpenseCallbackProcessor(
         session=session,
         message_id=message_id,
         position=position,
@@ -77,13 +108,13 @@ def simple_callback_view(call):
         session=session,
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        conversation=dao.conversation,
+        conversation=processor.conversation,
     )
     statist = Statist(session=session)
 
     usecase = SimpleInputCallbackUsecase(
         session=session,
-        dao=dao,
+        processor=processor,
         speaker=speaker,
         text_maker=TextMaker,
         statist=statist
