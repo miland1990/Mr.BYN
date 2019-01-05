@@ -1,19 +1,32 @@
 # coding: utf-8
+import logging
+
 import telebot
 
 from credentials import token
 from constants import RE_SIMPLE_STR, SIMPLE_TYPE, DELIMETER, RE_REMOVE_PURCHASE_STR
 from utils import authorise
 from database import db_make_session
-from services import BotSpeaker, TextMaker, SimpleExpenseCallbackProcessor, Statist, SimpleExpenseInputProcessor, ExpenseEditorProcessor
+from services import BotSpeaker, TextMaker, SimpleExpenseCallbackProcessor, Statist, SimpleExpenseInputProcessor, \
+    ExpenseEditorProcessor
 from usecases import SimpleInputCallbackUsecase, SimpleExpenseInputUsecase, PurchaseDeleteUseCase
 
 bot = telebot.TeleBot(token)
+
+logger = logging.getLogger('main')
+logger.setLevel(logging.INFO)
+handler = logging.FileHandler('vol/main.log')
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s: %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 @bot.message_handler(commands=[u'stat'])
 @authorise
 def get_month_stat(message):
+
+    logger.info(message.text)
 
     session = db_make_session()
     statist = Statist(session=session)
@@ -32,6 +45,8 @@ def get_month_stat(message):
 @bot.message_handler(regexp=RE_REMOVE_PURCHASE_STR)
 @authorise
 def remove_purhcase(message):
+
+    logger.info(message.text)
 
     session = db_make_session()
 
@@ -63,6 +78,8 @@ def remove_purhcase(message):
 @bot.message_handler(regexp=RE_SIMPLE_STR)
 @authorise
 def simple_user_input(message):
+
+    logger.info(message.text)
 
     session = db_make_session()
     processor = SimpleExpenseInputProcessor(
@@ -96,6 +113,8 @@ def simple_user_input(message):
 @authorise
 @bot.callback_query_handler(func=lambda call: call.data.startswith(SIMPLE_TYPE))
 def simple_callback_view(call):
+
+    logger.info(call.message.text + ' - ' + call.data)
 
     session = db_make_session()
     expense_input_kind, message_id, position, expense = call.data.split(DELIMETER)
