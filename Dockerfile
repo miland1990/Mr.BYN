@@ -1,22 +1,8 @@
 FROM python:3
 
-ADD bot.py /
-ADD requirements.txt /
-
-RUN mkdir /config
-RUN mkdir /code
-RUN mkdir /vol
-
-ADD ./requirements.txt /config/
-
-RUN pip install -r /config/requirements.txt
-
+RUN mkdir code
 ADD . /code/
-ADD ./requirements.txt /config/
-ADD . /code/vol/
-
 WORKDIR /code
-
-RUN pip install -r /config/requirements.txt
+RUN pip install -r requirements.txt
 
 CMD [ "python", "bot.py" ]
