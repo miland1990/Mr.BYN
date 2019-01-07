@@ -3,6 +3,5 @@ finance*
 *vol/*
 pytelegrambotapi/
 .idea/
-credentials.py
 *.pyc
 *env*
