@@ -1,4 +1,6 @@
-/vol*
+finance*
+*.log
+*vol/*
 pytelegrambotapi/
 .idea/
 credentials.py
