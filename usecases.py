@@ -175,3 +175,25 @@ class PurchaseDeleteUseCase:
                     grouped_stats=self.statist.get_current_month_stats()
                 )
             )
+
+
+class DetailedStatsUsecase:
+
+    def __init__(
+            self,
+            session,
+            processor,
+            speaker,
+            text_maker,
+            statist,
+            message_text,
+    ):
+        self.session = session
+        self.processor = processor
+        self.speaker = speaker
+        self.text_maker = text_maker
+        self.statist = statist
+        self.message_text = message_text
+
+    def execute(self):
+        pass

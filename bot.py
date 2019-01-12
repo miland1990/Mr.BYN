@@ -8,8 +8,9 @@ from constants import RE_SIMPLE_STR, SIMPLE_TYPE, DELIMETER, RE_REMOVE_PURCHASE_
 from utils import authorise
 from database import db_make_session
 from services import BotSpeaker, TextMaker, SimpleExpenseCallbackProcessor, Statist, SimpleExpenseInputProcessor, \
-    ExpenseEditorProcessor
-from usecases import SimpleInputCallbackUsecase, SimpleExpenseInputUsecase, PurchaseDeleteUseCase
+    ExpenseEditorProcessor, StatProcessor
+from usecases import SimpleInputCallbackUsecase, SimpleExpenseInputUsecase, PurchaseDeleteUseCase, \
+    DetailedStatsUsecase
 
 bot = telebot.TeleBot(token)
 
@@ -39,6 +40,39 @@ def get_month_stat(message):
         parse_mode='Markdown'
     )
 
+    session.close()
+
+
+@bot.message_handler(commands=[u'/detailed stat'])
+@authorise
+def get_month_detailed_stat_choices(message):
+
+    logger.info(message.text)
+
+    session = db_make_session()
+
+    processor = StatProcessor(session=session)
+
+    speaker = BotSpeaker(
+        session=session,
+        chat_id=message.chat.id,
+        message_id=message.message_id,  # в данном юзкейсе не нужно
+        conversation=processor.conversation,  # в данном юзкейсе не нужно
+    )
+
+    statist = Statist(session=session)
+
+    usecase = DetailedStatsUsecase(
+        session=session,
+        processor=processor,
+        speaker=speaker,
+        statist=statist,
+        text_maker=TextMaker,
+        message_text=message.text,
+    )
+    usecase.execute()
+
+    session.commit()
     session.close()
 
 

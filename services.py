@@ -383,6 +383,21 @@ class ExpenseEditorProcessor(ConversationMixin):
             filter(Purchase.id.in_(ids)).delete(synchronize_session=False)
 
 
+class StatProcessor(ConversationMixin):
+
+    def __init__(
+            self,
+            session,
+    ):
+        self.session = session
+        self.conversation = self.create_conversation(
+            status=ConversationStatus.closed
+        )
+
+    def get_monthes_choices(self):
+        pass
+
+
 class SimpleExpenseInputProcessor(ConversationMixin):
 
     def __init__(
