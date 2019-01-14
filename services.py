@@ -1,13 +1,16 @@
 # coding: utf-8
-from datetime import datetime
+from datetime import datetime, timedelta
+from monthdelta import monthdelta
+from collections import defaultdict
 
 import telebot
 from sqlalchemy.orm.query import Query
 from sqlalchemy.sql import func, column
 
 from credentials import token
-from constants import REPLY_EXPENSES, SIMPLE_TYPE, DELIMETER, NOTES_NEVER_NEED_MENU, \
-    REMEMBERED_EXPENSE_DUBLICATES_COUNT, OLD_BELARUSSIAN_RUBLE_CODE, NEW_BELARUSSIAN_RUBLE_CODE
+from constants import REPLY_EXPENSES, SIMPLE_EXPENSE_CALLBACK, DELIMETER, NOTES_NEVER_NEED_MENU, \
+    REMEMBERED_EXPENSE_DUBLICATES_COUNT, OLD_BELARUSSIAN_RUBLE_CODE, NEW_BELARUSSIAN_RUBLE_CODE, MONTHES, \
+    MONTH_DETAILED_CALLBACK, EXPENSES
 from models import Purchase, Conversation, PurchaseStatus, ConversationStatus
 
 
@@ -22,8 +25,8 @@ class BotSpeaker:
             self,
             session,
             chat_id,
-            message_id,
-            conversation,
+            message_id=None,
+            conversation=None,
             parse_mode=MARKDOWN,
             bot=telebot.TeleBot(token),
     ):
@@ -34,14 +37,14 @@ class BotSpeaker:
         self.parse_mode = parse_mode
         self.bot = bot
 
-    def _get_callback_markup(self, position, message_id, expense_input_kind):
+    def _get_simple_input_callback_markup(self, position, message_id, expense_input_kind):
         """
         Build interactive menu for choosing purchase expense.
         """
         keyboard = telebot.types.InlineKeyboardMarkup()
         for expense_id, button_name in REPLY_EXPENSES:
-            data = '{expense_input_kind}{DELIMETER}{message_id}{DELIMETER}{position}{DELIMETER}{expense_id}'.format(
-                expense_input_kind=expense_input_kind,
+            data = '{callback_code}{DELIMETER}{message_id}{DELIMETER}{position}{DELIMETER}{expense_id}'.format(
+                callback_code=expense_input_kind,
                 message_id=message_id,
                 position=position,
                 expense_id=expense_id,
@@ -49,6 +52,23 @@ class BotSpeaker:
             )
             callback_button = telebot.types.InlineKeyboardButton(text=button_name, callback_data=data)
             keyboard.add(callback_button)
+        return keyboard
+
+    def _get_detailed_statistics_callback_markup(self):
+        """
+        Build interactive menu for choosing month of detailed report by categories.
+        """
+        keyboard = telebot.types.InlineKeyboardMarkup()
+        one_line = []
+        for index, (month_id, month_name) in enumerate(MONTHES, start=1):
+            data = '{callback_code}{DELIMETER}{month_id}'.format(
+                month_id=month_id, DELIMETER=DELIMETER, callback_code=MONTH_DETAILED_CALLBACK
+            )
+            callback_button = telebot.types.InlineKeyboardButton(text=month_name, callback_data=data)
+            one_line.append(callback_button)
+            if index % 3 == 0:
+                keyboard.add(*one_line)
+                one_line = []
         return keyboard
 
     def _edit_message(self, new_text, message_id):
@@ -69,7 +89,7 @@ class BotSpeaker:
             parse_mode=self.parse_mode,
         )
 
-    def send_choose_expense_category_message(self, text, position=1, expense_input_kind=SIMPLE_TYPE):
+    def send_choose_expense_category_message(self, text, position=1, expense_input_kind=SIMPLE_EXPENSE_CALLBACK):
         """
         Send interactive menu for choosing expense.
         """
@@ -77,11 +97,22 @@ class BotSpeaker:
             chat_id=self.chat_id,
             text=text,
             parse_mode=self.parse_mode,
-            reply_markup=self._get_callback_markup(
+            reply_markup=self._get_simple_input_callback_markup(
                 position=position,
                 message_id=self.message_id,
                 expense_input_kind=expense_input_kind,
             )
+        )
+
+    def send_choose_month_of_detailed_stats_message(self, text):
+        """
+        Send interactive menu for choosing month of detailed stats.
+        """
+        self.bot.send_message(
+            chat_id=self.chat_id,
+            text=text,
+            parse_mode=self.parse_mode,
+            reply_markup=self._get_detailed_statistics_callback_markup(),
         )
 
     def delete_message(self, message_id):
@@ -109,6 +140,15 @@ class BotSpeaker:
             message_id=self.conversation.bot_message_id
         )
 
+    def edit_detailed_command_message(self, new_text, message_id):
+        """
+        Edit detailed stat message
+        """
+        return self._edit_message(
+            new_text=new_text,
+            message_id=message_id,
+        )
+
 
 class TextMaker:
     """
@@ -116,9 +156,16 @@ class TextMaker:
     """
 
     MONTH_PURCHASES_SUMM_TEMPLATE = '''
-*Структура расходов* за месяц:
+*Расходы* за месяц:
 {grouped_stats}
     '''
+
+    DETAILED_MONTH_PURCHASES_SUMM_TEMPLATE = '''
+*Структура расходов* за {month_name}:
+{grouped_stats}
+    '''
+
+    DETAILED_MONTH_PURCHASES_NO_DATA_TEMPLATE = '''За *{month_name}* расходов не зарегистрировано.'''
 
     PURCHASE_REPORT_AUTO_TEMPLATE = '''
 *Учтено автоматически*: {price} {currency_code} - "{note}".
@@ -155,6 +202,13 @@ class TextMaker:
 Расход *id={purchase_id}* не найден.
     '''
 
+    CHOOSE_MONTH_MENU = '''Выберите анализируемый месяц:'''
+
+    DETAILED_ONE_EXPENSE_REPORT = '''
+*{expense_name}*: {currency_report}'''
+
+    DETAILED_ONE_CURRENCY_REPORT = '''_{currency_code}_ - {total_by_currency}'''
+
     @classmethod
     def get_month_stat_report(cls, grouped_stats):
         """
@@ -162,6 +216,17 @@ class TextMaker:
         """
         return cls.MONTH_PURCHASES_SUMM_TEMPLATE.\
             format(grouped_stats=cls._format_month_stats(grouped_stats))
+
+    @classmethod
+    def get_detailed_month_stat_report(cls, grouped_stats, month_name):
+        """
+        Make message with month statistics grouped by currencies and categories.
+        """
+        if not grouped_stats:
+            return cls.DETAILED_MONTH_PURCHASES_NO_DATA_TEMPLATE.format(month_name=month_name.lower())
+        else:
+            return cls.DETAILED_MONTH_PURCHASES_SUMM_TEMPLATE.\
+                format(grouped_stats=cls._format_detailed_month_stats(grouped_stats), month_name=month_name)
 
     @classmethod
     def _format_month_stats(cls, grouped_stats):
@@ -182,6 +247,13 @@ class TextMaker:
             currency_code=currency_code,
             note=note
         )
+
+    @classmethod
+    def get_choose_message_report(cls):
+        """
+        Make choose month menu for detailed statistics.
+        """
+        return cls.CHOOSE_MONTH_MENU
 
     @classmethod
     def get_conversation_intermediate_report(cls, grouped_stats, uncategorized_purchases):
@@ -252,6 +324,23 @@ class TextMaker:
     def get_not_found_purchase_report(cls, purchase_id):
         return cls.NOT_FOUND_PURCHASE_REPORT.format(purchase_id=purchase_id)
 
+    @classmethod
+    def _format_detailed_month_stats(cls, grouped_stats):
+        by_expenses = defaultdict(list)
+        if not grouped_stats:
+            return ''
+        for currency_code, total_by_currency, expense_id in grouped_stats:
+            expense_name = dict(EXPENSES).get(str(expense_id)).capitalize()
+            by_expenses[expense_name].append(
+                cls.DETAILED_ONE_CURRENCY_REPORT.format(currency_code=currency_code, total_by_currency=total_by_currency)
+            )
+        by_category = []
+        for expense_name, currency_report in by_expenses.items():
+            by_category.append(
+                cls.DETAILED_ONE_EXPENSE_REPORT.format(expense_name=expense_name, currency_report=' '.join(currency_report))
+            )
+        return ''.join(by_category)
+
 
 class Statist:
     def __init__(
@@ -260,8 +349,23 @@ class Statist:
     ):
         self.session = session
 
-    def _get_month_start_datetime(self):
-        return datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    def _get_month_start_datetime(self, month=0):
+        now = datetime.now()
+        now_replaced = now.replace(day=1, hour=0, minute=0, second=0)
+        if now.month >= month:
+            month_diff = 0 if not month else 12 - (13 - month)
+            return now_replaced - monthdelta(month_diff)
+        else:
+            return now_replaced + monthdelta(month - now.month) - monthdelta(12)
+
+    def _get_month_end_datetime(self, month=0):
+        now = datetime.now()
+        now_replaced = now.replace(day=1, hour=23, minute=59, second=59)
+        if now.month >= month:
+            month_diff = 0 if not month else 12 - (14 - month)
+            return now_replaced - timedelta(days=1) - monthdelta(month_diff)
+        else:
+            return now_replaced - timedelta(days=1) + monthdelta(month - now.month + 1) - monthdelta(12)
 
     def get_current_month_stats(self):
         stats = self.session.\
@@ -275,6 +379,26 @@ class Statist:
                 (
                     currency if currency != OLD_BELARUSSIAN_RUBLE_CODE else NEW_BELARUSSIAN_RUBLE_CODE,
                     round(groupped_currency_summ, 2)
+                )
+            )
+        if not currency_expenses:
+            return 0
+        return currency_expenses
+
+    def get_detailed_month_stats(self, month):
+        stats = self.session.\
+            query(Purchase.currency, func.sum(Purchase.price), Purchase.expense).\
+            filter(Purchase.epoch >= self._get_month_start_datetime(month=month),
+                   Purchase.epoch < self._get_month_end_datetime(month=month)).\
+            group_by(Purchase.currency, Purchase.expense).all()
+
+        currency_expenses = []
+        for currency, groupped_currency_summ, expense_id in stats:
+            currency_expenses.append(
+                (
+                    currency.code if currency != OLD_BELARUSSIAN_RUBLE_CODE else NEW_BELARUSSIAN_RUBLE_CODE,
+                    round(groupped_currency_summ, 2),
+                    expense_id,
                 )
             )
         if not currency_expenses:
@@ -366,9 +490,6 @@ class ExpenseEditorProcessor(ConversationMixin):
             session,
     ):
         self.session = session
-        self.conversation = self.create_conversation(
-            status=ConversationStatus.closed
-        )
 
     def get_purchase_data(self, purchase_id):
         purchase = Query(Purchase).with_session(session=self.session).filter_by(id=purchase_id).first()

@@ -1,5 +1,5 @@
 # coding: utf-8
-from constants import UI_CANCEL_INDEX, RE_SIMPLE, RE_INT
+from constants import UI_CANCEL_INDEX, RE_SIMPLE, RE_INT, MONTHES
 from entity import SimpleExpenseMatch
 
 
@@ -182,18 +182,35 @@ class DetailedStatsUsecase:
     def __init__(
             self,
             session,
-            processor,
+            speaker,
+            text_maker,
+    ):
+        self.session = session
+        self.speaker = speaker
+        self.text_maker = text_maker
+
+    def execute(self):
+        self.speaker.send_choose_month_of_detailed_stats_message(
+            text=self.text_maker.get_choose_message_report()
+        )
+
+
+class DetailedStatsCallbackUsecase:
+
+    def __init__(
+            self,
+            session,
             speaker,
             text_maker,
             statist,
-            message_text,
     ):
         self.session = session
-        self.processor = processor
         self.speaker = speaker
         self.text_maker = text_maker
         self.statist = statist
-        self.message_text = message_text
 
-    def execute(self):
-        pass
+    def execute(self, month_code, message_id):
+        grouped_stats = self.statist.get_detailed_month_stats(month=int(month_code))
+        month_name = dict(MONTHES).get(month_code)
+        text = self.text_maker.get_detailed_month_stat_report(grouped_stats=grouped_stats, month_name=month_name)
+        self.speaker.edit_detailed_command_message(new_text=text, message_id=message_id)

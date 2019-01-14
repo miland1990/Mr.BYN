@@ -48,6 +48,21 @@ EXPENSES = (
     ('12', EXPENSE_ANOTHER),
 )
 
+MONTHES = (
+    ('1', u'Январь'),
+    ('2', u'Февраль'),
+    ('3', u'Март'),
+    ('4', u'Апрель'),
+    ('5', u'Май'),
+    ('6', u'Июнь'),
+    ('7', u'Июль'),
+    ('8', u'Август'),
+    ('9', u'Сентябрь'),
+    ('10', u'Октябрь'),
+    ('11', u'Ноябрь'),
+    ('12', u'Декабрь'),
+)
+
 UI_CANCEL_INDEX = str(len(EXPENSES) + 1)
 
 REPLY_EXPENSES = EXPENSES + ((UI_CANCEL_INDEX, UI_CANCEL_BUTTON),)
@@ -57,6 +72,7 @@ NOTES_NEVER_NEED_MENU = (
     ('NLD UBER', EXPENSE_TRANSPORT),
 )
 
-SIMPLE_TYPE = 's'
+SIMPLE_EXPENSE_CALLBACK = 's'
+MONTH_DETAILED_CALLBACK = 'm'
 DELIMETER = '|'
 REMEMBERED_EXPENSE_DUBLICATES_COUNT = 2

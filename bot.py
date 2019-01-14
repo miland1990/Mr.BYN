@@ -4,13 +4,14 @@ import logging
 import telebot
 
 from credentials import token
-from constants import RE_SIMPLE_STR, SIMPLE_TYPE, DELIMETER, RE_REMOVE_PURCHASE_STR
+from constants import RE_SIMPLE_STR, SIMPLE_EXPENSE_CALLBACK, DELIMETER, RE_REMOVE_PURCHASE_STR, \
+    MONTH_DETAILED_CALLBACK
 from utils import authorise
 from database import db_make_session
 from services import BotSpeaker, TextMaker, SimpleExpenseCallbackProcessor, Statist, SimpleExpenseInputProcessor, \
     ExpenseEditorProcessor, StatProcessor
 from usecases import SimpleInputCallbackUsecase, SimpleExpenseInputUsecase, PurchaseDeleteUseCase, \
-    DetailedStatsUsecase
+    DetailedStatsUsecase, DetailedStatsCallbackUsecase
 
 bot = telebot.TeleBot(token)
 
@@ -43,39 +44,6 @@ def get_month_stat(message):
     session.close()
 
 
-@bot.message_handler(commands=[u'/detailed stat'])
-@authorise
-def get_month_detailed_stat_choices(message):
-
-    logger.info(message.text)
-
-    session = db_make_session()
-
-    processor = StatProcessor(session=session)
-
-    speaker = BotSpeaker(
-        session=session,
-        chat_id=message.chat.id,
-        message_id=message.message_id,  # в данном юзкейсе не нужно
-        conversation=processor.conversation,  # в данном юзкейсе не нужно
-    )
-
-    statist = Statist(session=session)
-
-    usecase = DetailedStatsUsecase(
-        session=session,
-        processor=processor,
-        speaker=speaker,
-        statist=statist,
-        text_maker=TextMaker,
-        message_text=message.text,
-    )
-    usecase.execute()
-
-    session.commit()
-    session.close()
-
-
 @bot.message_handler(regexp=RE_REMOVE_PURCHASE_STR)
 @authorise
 def remove_purhcase(message):
@@ -89,8 +57,6 @@ def remove_purhcase(message):
     speaker = BotSpeaker(
         session=session,
         chat_id=message.chat.id,
-        message_id=message.message_id,  # в данном юзкейсе не нужно
-        conversation=processor.conversation,  # в данном юзкейсе не нужно
     )
 
     statist = Statist(session=session)
@@ -145,7 +111,7 @@ def simple_user_input(message):
 
 
 @authorise
-@bot.callback_query_handler(func=lambda call: call.data.startswith(SIMPLE_TYPE))
+@bot.callback_query_handler(func=lambda call: call.data.startswith(SIMPLE_EXPENSE_CALLBACK))
 def simple_callback_view(call):
 
     logger.info(call.message.text + ' - ' + call.data)
@@ -175,6 +141,58 @@ def simple_callback_view(call):
     usecase.execute(expense=expense)
 
     session.commit()
+    session.close()
+
+
+@bot.message_handler(commands=[u'detailed'])
+@authorise
+def get_month_detailed_stat_choices(message):
+
+    logger.info(message.text)
+
+    session = db_make_session()
+
+    speaker = BotSpeaker(
+        session=session,
+        chat_id=message.chat.id,
+        message_id=message.message_id,
+    )
+
+    usecase = DetailedStatsUsecase(
+        session=session,
+        speaker=speaker,
+        text_maker=TextMaker,
+    )
+    usecase.execute()
+
+    session.commit()
+    session.close()
+
+
+@authorise
+@bot.callback_query_handler(func=lambda call: call.data.startswith(MONTH_DETAILED_CALLBACK))
+def detailed_month_stats_callback_view(call):
+
+    logger.info(call.data)
+
+    session = db_make_session()
+    month_callback_call, month_code = call.data.split(DELIMETER)
+
+    statist = Statist(session=session)
+    speaker = BotSpeaker(
+        session=session,
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+    )
+    usecase = DetailedStatsCallbackUsecase(
+        session=session,
+        speaker=speaker,
+        text_maker=TextMaker,
+        statist=statist
+    )
+
+    usecase.execute(month_code=month_code, message_id=call.message.message_id)
+
     session.close()
 
 
