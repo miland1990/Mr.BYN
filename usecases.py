@@ -211,6 +211,14 @@ class DetailedStatsCallbackUsecase:
 
     def execute(self, month_code, message_id):
         grouped_stats = self.statist.get_detailed_month_stats(month=int(month_code))
+        total_stats = self.statist.get_current_month_stats()
         month_name = dict(MONTHES).get(month_code)
-        text = self.text_maker.get_detailed_month_stat_report(grouped_stats=grouped_stats, month_name=month_name)
-        self.speaker.edit_detailed_command_message(new_text=text, message_id=message_id)
+        text = self.text_maker.get_detailed_month_stat_report(
+            grouped_stats=grouped_stats,
+            month_name=month_name,
+            total_stats=total_stats
+        )
+        self.speaker.edit_detailed_command_message(
+            new_text=text,
+            message_id=message_id
+        )

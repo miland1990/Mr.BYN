@@ -156,12 +156,12 @@ class TextMaker:
     """
 
     MONTH_PURCHASES_SUMM_TEMPLATE = '''
-*Расходы* за месяц:
+_Итого_:
 {grouped_stats}
     '''
 
     DETAILED_MONTH_PURCHASES_SUMM_TEMPLATE = '''
-*Структура расходов* за {month_name}:
+_{month_name}_:
 {grouped_stats}
     '''
 
@@ -214,11 +214,12 @@ class TextMaker:
         """
         Make message with month statistics grouped by currencies.
         """
+        grouped_stats = cls._format_month_stats(grouped_stats)
         return cls.MONTH_PURCHASES_SUMM_TEMPLATE.\
-            format(grouped_stats=cls._format_month_stats(grouped_stats))
+            format(grouped_stats=grouped_stats)
 
     @classmethod
-    def get_detailed_month_stat_report(cls, grouped_stats, month_name):
+    def get_detailed_month_stat_report(cls, grouped_stats, month_name, total_stats):
         """
         Make message with month statistics grouped by currencies and categories.
         """
@@ -226,7 +227,8 @@ class TextMaker:
             return cls.DETAILED_MONTH_PURCHASES_NO_DATA_TEMPLATE.format(month_name=month_name.lower())
         else:
             return cls.DETAILED_MONTH_PURCHASES_SUMM_TEMPLATE.\
-                format(grouped_stats=cls._format_detailed_month_stats(grouped_stats), month_name=month_name)
+                format(grouped_stats=cls._format_detailed_month_stats(grouped_stats), month_name=month_name) + \
+                   cls.get_month_stat_report(total_stats)
 
     @classmethod
     def _format_month_stats(cls, grouped_stats):

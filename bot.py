@@ -24,26 +24,6 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-@bot.message_handler(commands=[u'stat'])
-@authorise
-def get_month_stat(message):
-
-    logger.info(message.text)
-
-    session = db_make_session()
-    statist = Statist(session=session)
-
-    bot.send_message(
-        chat_id=message.chat.id,
-        text=TextMaker.get_month_stat_report(
-            statist.get_current_month_stats()
-        ),
-        parse_mode='Markdown'
-    )
-
-    session.close()
-
-
 @bot.message_handler(regexp=RE_REMOVE_PURCHASE_STR)
 @authorise
 def remove_purhcase(message):
@@ -144,7 +124,7 @@ def simple_callback_view(call):
     session.close()
 
 
-@bot.message_handler(commands=[u'detailed'])
+@bot.message_handler(commands=[u'stat'])
 @authorise
 def get_month_detailed_stat_choices(message):
 
