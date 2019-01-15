@@ -10,7 +10,7 @@ from sqlalchemy.sql import func, column
 from credentials import token
 from constants import REPLY_EXPENSES, SIMPLE_EXPENSE_CALLBACK, DELIMETER, NOTES_NEVER_NEED_MENU, \
     REMEMBERED_EXPENSE_DUBLICATES_COUNT, OLD_BELARUSSIAN_RUBLE_CODE, NEW_BELARUSSIAN_RUBLE_CODE, MONTHES, \
-    MONTH_DETAILED_CALLBACK, EXPENSES
+    MONTH_DETAILED_CALLBACK, EXPENSES, NO_EXPENSE
 from models import Purchase, Conversation, PurchaseStatus, ConversationStatus
 
 
@@ -330,7 +330,7 @@ class TextMaker:
         if not grouped_stats:
             return ''
         for currency_code, total_by_currency, expense_id in grouped_stats:
-            expense_name = dict(EXPENSES).get(str(expense_id)).capitalize()
+            expense_name = dict(EXPENSES).get(str(expense_id), NO_EXPENSE).capitalize()
             by_expenses[expense_name].append(
                 cls.DETAILED_ONE_CURRENCY_REPORT.format(currency_code=currency_code, total_by_currency=total_by_currency)
             )
