@@ -7,6 +7,9 @@ RE_SIMPLE = re.compile(RE_SIMPLE_STR, re.U | re.I)
 RE_REMOVE_PURCHASE_STR = r'remove|rm|del(?:\s+)?(?P<purchase_id>[\d]+)'
 RE_REMOVE_PURCHASE = re.compile(RE_REMOVE_PURCHASE_STR, re.U | re.I)
 
+RE_PRIOR_SMS_STR = r'Priorbank. Karta (?:\d\*{3}\d{4}) (?P<epoch>.{19}). Oplata (?P<price>\d*[.,]?\d*) (?P<currency>[\w+]{3}). (?P<note>[^\.]+).*'
+RE_PRIOR_SMS = re.compile(RE_PRIOR_SMS_STR)
+
 RE_INT_STR = r'(?P<integer>[\d]+)'
 RE_INT = re.compile(RE_INT_STR, re.U | re.I)
 
@@ -68,7 +71,10 @@ UI_CANCEL_INDEX = str(len(EXPENSES) + 1)
 
 REPLY_EXPENSES = EXPENSES + ((UI_CANCEL_INDEX, UI_CANCEL_BUTTON),)
 
-NOTES_ALWAYS_NEED_MENU = ('BLR MOBILE BANK',)
+NOTES_ALWAYS_NEED_MENU = (
+    'BLR MOBILE BANK',  # мобильный банкинг через приложение
+    'BLR SHOP',  # может быть абсолютно любой магазин
+)
 NOTES_NEVER_NEED_MENU = (
     ('NLD UBER', EXPENSE_TRANSPORT),
 )

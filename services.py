@@ -10,7 +10,7 @@ from sqlalchemy.sql import func, column
 from credentials import token
 from constants import REPLY_EXPENSES, SIMPLE_EXPENSE_CALLBACK, DELIMETER, NOTES_NEVER_NEED_MENU, \
     REMEMBERED_EXPENSE_DUBLICATES_COUNT, OLD_BELARUSSIAN_RUBLE_CODE, NEW_BELARUSSIAN_RUBLE_CODE, MONTHES, \
-    MONTH_DETAILED_CALLBACK, EXPENSES, NO_EXPENSE
+    MONTH_DETAILED_CALLBACK, EXPENSES, NO_EXPENSE, NOTES_ALWAYS_NEED_MENU
 from models import Purchase, Conversation, PurchaseStatus, ConversationStatus
 
 
@@ -37,7 +37,7 @@ class BotSpeaker:
         self.parse_mode = parse_mode
         self.bot = bot
 
-    def _get_simple_input_callback_markup(self, position, message_id, expense_input_kind):
+    def _get_input_callback_markup(self, position, message_id, expense_input_kind):
         """
         Build interactive menu for choosing purchase expense.
         """
@@ -97,7 +97,7 @@ class BotSpeaker:
             chat_id=self.chat_id,
             text=text,
             parse_mode=self.parse_mode,
-            reply_markup=self._get_simple_input_callback_markup(
+            reply_markup=self._get_input_callback_markup(
                 position=position,
                 message_id=self.message_id,
                 expense_input_kind=expense_input_kind,
@@ -408,7 +408,7 @@ class Statist:
         return currency_expenses
 
 
-class SimpleExpenseCallbackProcessor:
+class ExpenseCallbackProcessor:
 
     def __init__(
             self,
@@ -521,7 +521,7 @@ class StatProcessor(ConversationMixin):
         pass
 
 
-class SimpleExpenseInputProcessor(ConversationMixin):
+class ExpenseInputProcessor(ConversationMixin):
 
     def __init__(
             self,
@@ -529,11 +529,13 @@ class SimpleExpenseInputProcessor(ConversationMixin):
             message_id,
             user_id,
             message_datetime,
+            is_sms,
     ):
         self.session = session
         self.message_id = message_id
         self.user_id = user_id
         self.message_datetime = message_datetime
+        self.is_sms = is_sms
         self.conversation = self.create_conversation()
 
     @staticmethod
@@ -542,6 +544,13 @@ class SimpleExpenseInputProcessor(ConversationMixin):
             if category_mark.lower() in note.lower():
                 return category_name
         return None
+
+    @staticmethod
+    def _need_force_menu_expense(note):
+        for force_mark in NOTES_ALWAYS_NEED_MENU:
+            if force_mark in note:
+                return True
+        return False
 
     def find_expense_category(self, note):
         """
@@ -552,9 +561,12 @@ class SimpleExpenseInputProcessor(ConversationMixin):
         """
         expense_category = None
 
-        no_menu_expense = self._get_no_menu_expense(note)
-        if no_menu_expense:
-            return no_menu_expense
+        if self.is_sms:
+            if self._need_force_menu_expense(note):
+                return None
+            no_menu_expense = self._get_no_menu_expense(note)
+            if no_menu_expense:
+                return no_menu_expense
 
         purchase_queryset = self.session.query(Purchase).filter(
             column('expense').isnot(None),

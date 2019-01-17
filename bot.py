@@ -5,13 +5,13 @@ import telebot
 
 from credentials import token
 from constants import RE_SIMPLE_STR, SIMPLE_EXPENSE_CALLBACK, DELIMETER, RE_REMOVE_PURCHASE_STR, \
-    MONTH_DETAILED_CALLBACK
+    MONTH_DETAILED_CALLBACK, RE_PRIOR_SMS_STR, RE_PRIOR_SMS, RE_SIMPLE
 from utils import authorise
 from database import db_make_session
-from services import BotSpeaker, TextMaker, SimpleExpenseCallbackProcessor, Statist, SimpleExpenseInputProcessor, \
-    ExpenseEditorProcessor, StatProcessor
-from usecases import SimpleInputCallbackUsecase, SimpleExpenseInputUsecase, PurchaseDeleteUseCase, \
-    DetailedStatsUsecase, DetailedStatsCallbackUsecase
+from services import BotSpeaker, TextMaker, ExpenseCallbackProcessor, Statist, ExpenseInputProcessor, \
+    ExpenseEditorProcessor
+from usecases import InputCallbackUsecase, ExpenseInputUsecase, PurchaseDeleteUseCase, \
+    StatsUsecase, StatsCallbackUsecase
 
 bot = telebot.TeleBot(token)
 
@@ -55,18 +55,19 @@ def remove_purhcase(message):
     session.close()
 
 
-@bot.message_handler(regexp=RE_SIMPLE_STR)
+@bot.message_handler(regexp=RE_PRIOR_SMS_STR)
 @authorise
-def simple_user_input(message):
+def sms_user_input(message):
 
     logger.info(message.text)
 
     session = db_make_session()
-    processor = SimpleExpenseInputProcessor(
+    processor = ExpenseInputProcessor(
         session=session,
         message_id=message.message_id,
         user_id=message.from_user.id,
         message_datetime=message.date,
+        is_sms=True,
     )
     speaker = BotSpeaker(
         session=session,
@@ -76,13 +77,51 @@ def simple_user_input(message):
     )
     statist = Statist(session=session)
 
-    usecase = SimpleExpenseInputUsecase(
+    usecase = ExpenseInputUsecase(
         session=session,
         processor=processor,
         speaker=speaker,
         statist=statist,
         text_maker=TextMaker,
         message_text=message.text,
+        regexp=RE_PRIOR_SMS,
+    )
+    usecase.execute()
+
+    session.commit()
+    session.close()
+
+
+@bot.message_handler(regexp=RE_SIMPLE_STR)
+@authorise
+def simple_user_input(message):
+
+    logger.info(message.text)
+
+    session = db_make_session()
+    processor = ExpenseInputProcessor(
+        session=session,
+        message_id=message.message_id,
+        user_id=message.from_user.id,
+        message_datetime=message.date,
+        is_sms=False
+    )
+    speaker = BotSpeaker(
+        session=session,
+        chat_id=message.chat.id,
+        message_id=message.message_id,
+        conversation=processor.conversation,
+    )
+    statist = Statist(session=session)
+
+    usecase = ExpenseInputUsecase(
+        session=session,
+        processor=processor,
+        speaker=speaker,
+        statist=statist,
+        text_maker=TextMaker,
+        message_text=message.text,
+        regexp=RE_SIMPLE,
     )
     usecase.execute()
 
@@ -98,7 +137,7 @@ def simple_callback_view(call):
 
     session = db_make_session()
     expense_input_kind, message_id, position, expense = call.data.split(DELIMETER)
-    processor = SimpleExpenseCallbackProcessor(
+    processor = ExpenseCallbackProcessor(
         session=session,
         message_id=message_id,
         position=position,
@@ -111,7 +150,7 @@ def simple_callback_view(call):
     )
     statist = Statist(session=session)
 
-    usecase = SimpleInputCallbackUsecase(
+    usecase = InputCallbackUsecase(
         session=session,
         processor=processor,
         speaker=speaker,
@@ -138,7 +177,7 @@ def get_month_detailed_stat_choices(message):
         message_id=message.message_id,
     )
 
-    usecase = DetailedStatsUsecase(
+    usecase = StatsUsecase(
         session=session,
         speaker=speaker,
         text_maker=TextMaker,
@@ -164,7 +203,7 @@ def detailed_month_stats_callback_view(call):
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
     )
-    usecase = DetailedStatsCallbackUsecase(
+    usecase = StatsCallbackUsecase(
         session=session,
         speaker=speaker,
         text_maker=TextMaker,

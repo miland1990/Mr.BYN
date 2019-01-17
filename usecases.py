@@ -1,9 +1,9 @@
 # coding: utf-8
-from constants import UI_CANCEL_INDEX, RE_SIMPLE, RE_INT, MONTHES
+from constants import UI_CANCEL_INDEX, RE_INT, MONTHES
 from entity import SimpleExpenseMatch
 
 
-class SimpleExpenseInputUsecase:
+class ExpenseInputUsecase:
 
     def __init__(
             self,
@@ -13,6 +13,7 @@ class SimpleExpenseInputUsecase:
             statist,
             text_maker,
             message_text,
+            regexp,
     ):
         self.session = session
         self.processor = processor
@@ -20,11 +21,12 @@ class SimpleExpenseInputUsecase:
         self.statist = statist
         self.text_maker = text_maker
         self.message_text = message_text
+        self.regexp = regexp
 
     def execute(self):
 
         matched_expenses = []
-        for position, match in enumerate(RE_SIMPLE.finditer(self.message_text), start=1):
+        for position, match in enumerate(self.regexp.finditer(self.message_text), start=1):
             matched_expenses.append(
                 SimpleExpenseMatch(
                     position=position,
@@ -63,7 +65,7 @@ class SimpleExpenseInputUsecase:
         )
 
 
-class SimpleInputCallbackUsecase:
+class InputCallbackUsecase:
 
     def __init__(
             self,
@@ -177,7 +179,7 @@ class PurchaseDeleteUseCase:
             )
 
 
-class DetailedStatsUsecase:
+class StatsUsecase:
 
     def __init__(
             self,
@@ -195,7 +197,7 @@ class DetailedStatsUsecase:
         )
 
 
-class DetailedStatsCallbackUsecase:
+class StatsCallbackUsecase:
 
     def __init__(
             self,
