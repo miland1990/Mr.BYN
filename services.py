@@ -8,7 +8,7 @@ from sqlalchemy.orm.query import Query
 from sqlalchemy.sql import func, column
 
 from credentials import token
-from constants import REPLY_EXPENSES, SIMPLE_EXPENSE_CALLBACK, DELIMETER, NOTES_NEVER_NEED_MENU, \
+from constants import REPLY_EXPENSES, SIMPLE_EXPENSE_CALLBACK, DELIMETER, \
     REMEMBERED_EXPENSE_DUBLICATES_COUNT, OLD_BELARUSSIAN_RUBLE_CODE, NEW_BELARUSSIAN_RUBLE_CODE, MONTHES, \
     MONTH_DETAILED_CALLBACK, EXPENSES, NO_EXPENSE, NOTES_ALWAYS_NEED_MENU
 from models import Purchase, Conversation, PurchaseStatus, ConversationStatus
@@ -539,13 +539,6 @@ class ExpenseInputProcessor(ConversationMixin):
         self.conversation = self.create_conversation()
 
     @staticmethod
-    def _get_no_menu_expense(note):
-        for category_mark, category_name in NOTES_NEVER_NEED_MENU:
-            if category_mark.lower() in note.lower():
-                return category_name
-        return None
-
-    @staticmethod
     def _need_force_menu_expense(note):
         for force_mark in NOTES_ALWAYS_NEED_MENU:
             if force_mark in note:
@@ -564,9 +557,6 @@ class ExpenseInputProcessor(ConversationMixin):
         if self.is_sms:
             if self._need_force_menu_expense(note):
                 return None
-            no_menu_expense = self._get_no_menu_expense(note)
-            if no_menu_expense:
-                return no_menu_expense
 
         purchase_queryset = self.session.query(Purchase).filter(
             column('expense').isnot(None),

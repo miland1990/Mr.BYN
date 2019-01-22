@@ -75,9 +75,6 @@ NOTES_ALWAYS_NEED_MENU = (
     'BLR MOBILE BANK',  # мобильный банкинг через приложение
     'BLR SHOP',  # может быть абсолютно любой магазин
 )
-NOTES_NEVER_NEED_MENU = (
-    ('NLD UBER', EXPENSE_TRANSPORT),
-)
 
 SIMPLE_EXPENSE_CALLBACK = 's'
 MONTH_DETAILED_CALLBACK = 'm'
