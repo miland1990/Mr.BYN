@@ -212,8 +212,9 @@ class StatsCallbackUsecase:
         self.statist = statist
 
     def execute(self, month_code, message_id):
-        grouped_stats = self.statist.get_detailed_month_stats(month=int(month_code))
-        total_stats = self.statist.get_current_month_stats()
+        month = int(month_code)
+        grouped_stats = self.statist.get_detailed_month_stats(month=month)
+        total_stats = self.statist.get_current_month_stats(month=month)
         month_name = dict(MONTHES).get(month_code)
         text = self.text_maker.get_detailed_month_stat_report(
             grouped_stats=grouped_stats,

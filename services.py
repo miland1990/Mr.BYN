@@ -1,6 +1,6 @@
 # coding: utf-8
 from datetime import datetime, timedelta
-from monthdelta import monthdelta
+from calendar import monthrange
 from collections import defaultdict
 
 import telebot
@@ -350,29 +350,29 @@ class Statist:
             session,
     ):
         self.session = session
+        self.now = datetime.now()
 
-    def _get_month_start_datetime(self, month=0):
-        now = datetime.now()
-        now_replaced = now.replace(day=1, hour=0, minute=0, second=0)
-        if now.month >= month:
-            month_diff = 0 if not month else 12 - (13 - month)
-            return now_replaced - monthdelta(month_diff)
+    def _get_choosen_month_and_year(self, month=None):
+        month = month or self.now.month
+        if month and self.now.month < month:
+            year = self.now.year - 1
         else:
-            return now_replaced + monthdelta(month - now.month) - monthdelta(12)
+            year = self.now.year
+        return year, month
 
-    def _get_month_end_datetime(self, month=0):
-        now = datetime.now()
-        now_replaced = now.replace(day=1, hour=23, minute=59, second=59)
-        if now.month >= month:
-            month_diff = 0 if not month else 12 - (14 - month)
-            return now_replaced - timedelta(days=1) - monthdelta(month_diff)
-        else:
-            return now_replaced - timedelta(days=1) + monthdelta(month - now.month + 1) - monthdelta(12)
+    def _get_month_start_datetime(self, month=None):
+        year, month = self._get_choosen_month_and_year(month=month)
+        return self.now.replace(hour=0, minute=0, second=0, month=month, year=year, day=1)
 
-    def get_current_month_stats(self):
+    def _get_month_end_datetime(self, month=None):
+        year, month = self._get_choosen_month_and_year(month=month)
+        max_month_day = monthrange(year, month)[1]
+        return self.now.replace(hour=23, minute=59, second=59, month=month, year=year, day=max_month_day)
+
+    def get_current_month_stats(self, month=None):
         stats = self.session.\
             query(Purchase.currency, func.sum(Purchase.price)).\
-            filter(Purchase.epoch >= self._get_month_start_datetime()).\
+            filter(Purchase.epoch >= self._get_month_start_datetime(month=month)).\
             group_by(Purchase.currency).all()
 
         currency_expenses = []
