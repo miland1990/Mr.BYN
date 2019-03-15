@@ -372,7 +372,8 @@ class Statist:
     def get_current_month_stats(self, month=None):
         stats = self.session.\
             query(Purchase.currency, func.sum(Purchase.price)).\
-            filter(Purchase.epoch >= self._get_month_start_datetime(month=month)).\
+            filter(Purchase.epoch >= self._get_month_start_datetime(month=month),
+                   Purchase.epoch < self._get_month_end_datetime(month=month)).\
             group_by(Purchase.currency).all()
 
         currency_expenses = []
