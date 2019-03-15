@@ -4,7 +4,7 @@ import re
 RE_SIMPLE_STR = r'(?P<price>[\d\.\,ю]+)(?:\s+)?(?P<currency>USD|BYR|BYN|RUB|UAH|EUR|PLN)?(?:\s+)?(?P<note>[\w].*?)(?:  |$|;)'
 RE_SIMPLE = re.compile(RE_SIMPLE_STR, re.U | re.I)
 
-RE_REMOVE_PURCHASE_STR = r'remove|rm|del(?:\s+)?(?P<purchase_id>[\d]+)'
+RE_REMOVE_PURCHASE_STR = r'^(?:remove|rm|del)(?:\s+)?(?P<purchase_id>[\d]+)'
 RE_REMOVE_PURCHASE = re.compile(RE_REMOVE_PURCHASE_STR, re.U | re.I)
 
 RE_PRIOR_SMS_STR = r'Priorbank. Karta (?:\d\*{3}\d{4}) (?P<epoch>.{19}). Oplata (?P<price>\d*[.,]?\d*) (?P<currency>[\w+]{3}). (?P<note>[^\.]+).*'

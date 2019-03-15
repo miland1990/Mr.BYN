@@ -1,13 +1,11 @@
 # coding: utf-8
-import logging
-
 import telebot
 
 from credentials import token
 from constants import RE_SIMPLE_STR, SIMPLE_EXPENSE_CALLBACK, DELIMETER, RE_REMOVE_PURCHASE_STR, \
     MONTH_DETAILED_CALLBACK, RE_PRIOR_SMS_STR, RE_PRIOR_SMS, RE_SIMPLE
-from utils import authorise
-from database import db_make_session
+from decorators import authorise, wrap_to_session, logg
+from logg import logger
 from services import BotSpeaker, TextMaker, ExpenseCallbackProcessor, Statist, ExpenseInputProcessor, \
     ExpenseEditorProcessor
 from usecases import InputCallbackUsecase, ExpenseInputUsecase, PurchaseDeleteUseCase, \
@@ -15,22 +13,12 @@ from usecases import InputCallbackUsecase, ExpenseInputUsecase, PurchaseDeleteUs
 
 bot = telebot.TeleBot(token)
 
-logger = logging.getLogger('main')
-logger.setLevel(logging.INFO)
-handler = logging.FileHandler('vol/main.log')
-handler.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s: %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-
 
 @bot.message_handler(regexp=RE_REMOVE_PURCHASE_STR)
 @authorise
-def remove_purhcase(message):
-
-    logger.info(message.text)
-
-    session = db_make_session()
+@wrap_to_session
+@logg
+def remove_purhcase(session, message):
 
     processor = ExpenseEditorProcessor(session=session)
 
@@ -51,17 +39,13 @@ def remove_purhcase(message):
     )
     usecase.execute()
 
-    session.commit()
-    session.close()
-
 
 @bot.message_handler(regexp=RE_PRIOR_SMS_STR)
 @authorise
-def sms_user_input(message):
+@wrap_to_session
+@logg
+def sms_user_input(session, message):
 
-    logger.info(message.text)
-
-    session = db_make_session()
     processor = ExpenseInputProcessor(
         session=session,
         message_id=message.message_id,
@@ -88,17 +72,13 @@ def sms_user_input(message):
     )
     usecase.execute()
 
-    session.commit()
-    session.close()
-
 
 @bot.message_handler(regexp=RE_SIMPLE_STR)
 @authorise
-def simple_user_input(message):
+@wrap_to_session
+@logg
+def simple_user_input(session, message):
 
-    logger.info(message.text)
-
-    session = db_make_session()
     processor = ExpenseInputProcessor(
         session=session,
         message_id=message.message_id,
@@ -125,17 +105,13 @@ def simple_user_input(message):
     )
     usecase.execute()
 
-    session.commit()
-    session.close()
 
-
-@authorise
 @bot.callback_query_handler(func=lambda call: call.data.startswith(SIMPLE_EXPENSE_CALLBACK))
-def simple_callback_view(call):
+@authorise
+@wrap_to_session
+@logg
+def simple_callback_view(session, call):
 
-    logger.info(call.message.text + ' - ' + call.data)
-
-    session = db_make_session()
     expense_input_kind, message_id, position, expense = call.data.split(DELIMETER)
     processor = ExpenseCallbackProcessor(
         session=session,
@@ -159,17 +135,12 @@ def simple_callback_view(call):
     )
     usecase.execute(expense=expense)
 
-    session.commit()
-    session.close()
-
 
 @bot.message_handler(commands=[u'stat'])
 @authorise
-def get_month_detailed_stat_choices(message):
-
-    logger.info(message.text)
-
-    session = db_make_session()
+@wrap_to_session
+@logg
+def get_month_detailed_stat_choices(session, message):
 
     speaker = BotSpeaker(
         session=session,
@@ -184,17 +155,13 @@ def get_month_detailed_stat_choices(message):
     )
     usecase.execute()
 
-    session.commit()
-    session.close()
 
-
-@authorise
 @bot.callback_query_handler(func=lambda call: call.data.startswith(MONTH_DETAILED_CALLBACK))
-def detailed_month_stats_callback_view(call):
+@authorise
+@wrap_to_session
+@logg
+def detailed_month_stats_callback_view(session, call):
 
-    logger.info(call.data)
-
-    session = db_make_session()
     month_callback_call, month_code = call.data.split(DELIMETER)
 
     statist = Statist(session=session)
@@ -212,7 +179,12 @@ def detailed_month_stats_callback_view(call):
 
     usecase.execute(month_code=month_code, message_id=call.message.message_id)
 
-    session.close()
+
+@bot.message_handler(regexp=r'.*')
+@authorise
+@wrap_to_session
+def logg_incorrect_command(session, message):
+    logger.info('unparsed: {}'.format(message.text))
 
 
 if __name__ == '__main__':
