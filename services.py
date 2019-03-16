@@ -590,6 +590,7 @@ class ExpenseInputProcessor(ConversationMixin):
                     price=expense_match.price,
                     note=expense_match.note,
                     expense=expense_category,
+                    kind=expense_match.kind,
                 )
             )
 

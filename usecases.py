@@ -1,6 +1,7 @@
 # coding: utf-8
-from constants import UI_CANCEL_INDEX, RE_INT, MONTHES
+from constants import UI_CANCEL_INDEX, RE_INT, MONTHES, RE_SIMPLE_STR
 from entity import SimpleExpenseMatch
+from models import PurchaseInputKind
 
 
 class ExpenseInputUsecase:
@@ -33,6 +34,7 @@ class ExpenseInputUsecase:
                     note=match.group('note'),
                     price=match.group('price'),
                     currency=match.group('currency'),
+                    kind=PurchaseInputKind.simple if self.regexp.pattern == RE_SIMPLE_STR else PurchaseInputKind.sms,
                 )
             )
 

@@ -10,9 +10,11 @@ class SimpleExpenseMatch:
             note,
             price,
             currency,
+            kind,
     ):
         self.position = position
         self.note = note
+        self.kind = kind
         self._price = price
         self._currency = currency
 
