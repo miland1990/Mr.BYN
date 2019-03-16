@@ -50,6 +50,7 @@ class ExpenseInputUsecase:
                         category_name=purchase.category_name,
                     )
                 )
+                self.processor.close_conversation()
             else:
                 uncategorized_purchases += 1
                 text = self.text_maker.set_purchase_expense(
@@ -113,7 +114,7 @@ class InputCallbackUsecase:
                 ),
                 purchase_message_id=self.processor.purchase.bot_message_id
             )
-            if self.processor.is_conversation_open:
+            if self.processor.is_conversation_finished:
                 self.processor.close_conversation()
                 self.speaker.edit_conversation_bot_message(
                     new_text=self.text_maker.get_month_stat_report(

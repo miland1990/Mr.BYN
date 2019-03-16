@@ -448,6 +448,7 @@ class ExpenseCallbackProcessor:
     def delete_current_purchase(self):
         Query(Purchase).with_session(session=self.session).filter_by(id=self.purchase.id).delete()
         self.decrement_open_purchases_of_conversation()
+        self.close_conversation()
 
         self.session.commit()
 
@@ -471,7 +472,7 @@ class ExpenseCallbackProcessor:
         self.conversation_open_purchases_count -= 1
 
     @property
-    def is_conversation_open(self):
+    def is_conversation_finished(self):
         return self.conversation_open_purchases_count == 0
 
 
