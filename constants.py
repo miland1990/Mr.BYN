@@ -16,21 +16,21 @@ RE_INT = re.compile(RE_INT_STR, re.U | re.I)
 OLD_BELARUSSIAN_RUBLE_CODE = 'BYR'
 NEW_BELARUSSIAN_RUBLE_CODE = 'BYN'
 
-UI_CANCEL_BUTTON = 'отмена ввода'
+UI_CANCEL_BUTTON = 'отмена ввода ❌'
 
-EXPENSE_COMMUNAL = 'коммуналка'
-EXPENSE_PRODUCT_SHOP = 'магазин'
-EXPENSE_FEE = 'сборы'
-EXPENSE_DOMESTIC = 'бытовые'
-EXPENSE_HEALTH = 'здоровье'
-EXPENSE_TRANSPORT = 'транспорт'
-EXPENSE_BEAUTY = 'красота'
-EXPENSE_NTERTAINMENT = 'развлечения'
-EXPENSE_BUY = 'покупки'
-EXPENSE_CHILD = 'ребенок'
-EXPENSE_HOME_BUILDING = 'стройка'
-EXPENSE_ANOTHER = 'иное'
-NO_EXPENSE = 'без категории'
+EXPENSE_COMMUNAL = 'коммуналка 🏠'
+EXPENSE_PRODUCT_SHOP = 'магазин 🛒'
+EXPENSE_FEE = 'сборы 💸'
+EXPENSE_DOMESTIC = 'бытовые 🛁'
+EXPENSE_HEALTH = 'здоровье 💊'
+EXPENSE_TRANSPORT = 'транспорт 🚗'
+EXPENSE_BEAUTY = 'красота 👑'
+EXPENSE_NTERTAINMENT = 'развлечения 🎉'
+EXPENSE_BUY = 'покупки 👔'
+EXPENSE_CHILD = 'ребенок 👼'
+EXPENSE_HOME_BUILDING = 'стройка 🏗'
+EXPENSE_ANOTHER = 'иное 🗿'
+NO_EXPENSE = 'без категории 🔎'
 
 EXPENSES_NAMES = (EXPENSE_COMMUNAL, EXPENSE_PRODUCT_SHOP, EXPENSE_FEE,
                   EXPENSE_DOMESTIC, EXPENSE_HEALTH, EXPENSE_TRANSPORT,
@@ -53,18 +53,18 @@ EXPENSES = (
 )
 
 MONTHES = (
-    ('1', u'Январь'),
-    ('2', u'Февраль'),
-    ('3', u'Март'),
-    ('4', u'Апрель'),
-    ('5', u'Май'),
-    ('6', u'Июнь'),
-    ('7', u'Июль'),
-    ('8', u'Август'),
-    ('9', u'Сентябрь'),
-    ('10', u'Октябрь'),
-    ('11', u'Ноябрь'),
-    ('12', u'Декабрь'),
+    ('1', u'Январь ❄️'),
+    ('2', u'Февраль ❄️'),
+    ('3', u'Март 🌱️'),
+    ('4', u'Апрель 🌱'),
+    ('5', u'Май 🌱'),
+    ('6', u'Июнь 🌞'),
+    ('7', u'Июль 🌞'),
+    ('8', u'Август 🌞'),
+    ('9', u'Сентябрь 🍁'),
+    ('10', u'Октябрь 🍁'),
+    ('11', u'Ноябрь 🍁'),
+    ('12', u'Декабрь ❄️'),
 )
 
 UI_CANCEL_INDEX = str(len(EXPENSES) + 1)

@@ -156,7 +156,7 @@ class TextMaker:
     """
 
     MONTH_PURCHASES_SUMM_TEMPLATE = '''
-_Итого_:
+_Итого_ 📎:
 {grouped_stats}
     '''
 
@@ -191,18 +191,18 @@ _{month_name}_:
 *{currency}*: {summ}'''
 
     DECLINE_PURCHASE_REPORT = '''
-*Отменен* расход: {price} {currency_code} - "{note}".
+*Отменен* ⭕️ расход: {price} {currency_code} - "{note}".
     '''
 
     DELETED_PURCHASE_REPORT = '''
-*Удален* расход: {price} {currency_code} - "{note}"*(id={purchase_id})*.
+*Удален* ❌ расход: {price} {currency_code} - "{note}"*(id={purchase_id})*.
     '''
 
     NOT_FOUND_PURCHASE_REPORT = '''
-Расход *id={purchase_id}* не найден.
+Расход *id={purchase_id}* не найден 😧.
     '''
 
-    CHOOSE_MONTH_MENU = '''Выберите анализируемый месяц:'''
+    CHOOSE_MONTH_MENU = '''Выберите анализируемый месяц 👆:'''
 
     DETAILED_ONE_EXPENSE_REPORT = '''
 *{expense_name}*: {currency_report}'''
