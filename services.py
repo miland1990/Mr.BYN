@@ -229,7 +229,7 @@ _{month_name}_:
 *{currency}*: {summ}'''
 
     ONE_EXPENSE_CATEGORY_LINE = '''
-*{price}{currency}*: 🏷{note}   ⏰({dt})'''
+*{price}{currency}*: 🏷{note}   ⏰({dt} *id*:{id})'''
 
     NO_EXPENSE_CATEGORY_LINE = '''
 😯 нет трат по данной категории'''
@@ -319,6 +319,7 @@ _{month_name}_:
                 currency=item[0],
                 note=item[2],
                 dt=item[3].isoformat(),
+                id=item[4],
             ) for item in expense_category_stats)
             return cls.EXPENSE_CATEGORIES_CALLBACK.format(category_name=category_name) + info
         else:
@@ -477,19 +478,20 @@ class Statist:
 
     def get_expense_category_detalization(self, expense_category, month):
         stats = self.session.\
-            query(Purchase.currency, Purchase.price, Purchase.note, Purchase.epoch).\
+            query(Purchase.currency, Purchase.price, Purchase.note, Purchase.epoch, Purchase.id).\
             filter(Purchase.epoch >= self._get_month_start_datetime(month=month),
                    Purchase.epoch < self._get_month_end_datetime(month=month),
                    Purchase.expense == expense_category).all()
 
         currency_expenses = []
-        for currency, groupped_currency_summ, note, dt in stats:
+        for currency, groupped_currency_summ, note, dt, purchase_id in stats:
             currency_expenses.append(
                 (
                     currency.code if currency != OLD_BELARUSSIAN_RUBLE_CODE else NEW_BELARUSSIAN_RUBLE_CODE,
                     round(groupped_currency_summ, 2),
                     note,
                     dt,
+                    purchase_id,
                 )
             )
         if not currency_expenses:

@@ -30,6 +30,7 @@ EXPENSE_BUY = 'покупки 👔'
 EXPENSE_CHILD = 'ребенок 👼'
 EXPENSE_DOG = 'собака 🦮'
 EXPENSE_INSURANCE = 'страховка 🧤'
+EXPENSE_CREDIT = 'рассрочки-кредиты 🎃'
 EXPENSE_ANOTHER = 'иное 🗿'
 NO_EXPENSE = 'без категории 🔎'
 
@@ -46,6 +47,7 @@ EXPENSES = (
     ('10', EXPENSE_CHILD),
     ('13', EXPENSE_DOG),
     ('14', EXPENSE_INSURANCE),
+    ('15', EXPENSE_CREDIT),
     ('12', EXPENSE_ANOTHER),
 )
 
