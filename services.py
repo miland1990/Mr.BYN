@@ -10,7 +10,7 @@ from sqlalchemy.sql import func, column
 from credentials import token
 from constants import REPLY_EXPENSES, SIMPLE_EXPENSE_CALLBACK, DELIMETER, \
     REMEMBERED_EXPENSE_DUBLICATES_COUNT, OLD_BELARUSSIAN_RUBLE_CODE, NEW_BELARUSSIAN_RUBLE_CODE, MONTHES, \
-    MONTH_DETAILED_CALLBACK, EXPENSES, NO_EXPENSE, NOTES_ALWAYS_NEED_MENU
+    MONTH_DETAILED_CALLBACK, EXPENSES, NO_EXPENSE, NOTES_ALWAYS_NEED_MENU, EXPENSE_DETALIZATION_CALLBACK
 from models import Purchase, Conversation, PurchaseStatus, ConversationStatus
 
 
@@ -47,6 +47,21 @@ class BotSpeaker:
                 callback_code=expense_input_kind,
                 message_id=message_id,
                 position=position,
+                expense_id=expense_id,
+                DELIMETER=DELIMETER,
+            )
+            callback_button = telebot.types.InlineKeyboardButton(text=button_name, callback_data=data)
+            keyboard.add(callback_button)
+        return keyboard
+
+    def _get_category_expenses_callback_markup(self, expense_input_kind):
+        """
+        Build interactive menu for choosing category expenses list.
+        """
+        keyboard = telebot.types.InlineKeyboardMarkup()
+        for expense_id, button_name in EXPENSES:
+            data = '{callback_code}{DELIMETER}{expense_id}'.format(
+                callback_code=expense_input_kind,
                 expense_id=expense_id,
                 DELIMETER=DELIMETER,
             )
@@ -100,6 +115,23 @@ class BotSpeaker:
             reply_markup=self._get_input_callback_markup(
                 position=position,
                 message_id=self.message_id,
+                expense_input_kind=expense_input_kind,
+            )
+        )
+
+    def send_choose_expense_category_detalization_message(
+            self,
+            text,
+            expense_input_kind=EXPENSE_DETALIZATION_CALLBACK
+    ):
+        """
+        Send interactive menu for choosing expense.
+        """
+        self.bot.send_message(
+            chat_id=self.chat_id,
+            text=text,
+            parse_mode=self.parse_mode,
+            reply_markup=self._get_category_expenses_callback_markup(
                 expense_input_kind=expense_input_kind,
             )
         )
@@ -187,8 +219,20 @@ _{month_name}_:
     PURCHASE_SET_CATEGORY_TEMPLATE = '''
 *Назначьте* категорию расходу: {price} {currency_code} - "{note}".
     '''
+    EXPENSE_CATEGORIES = '''
+*Выберите* анализируемую категорию расхода за текущий месяц.
+    '''
+    EXPENSE_CATEGORIES_CALLBACK = '''
+Детализация категории "*{category_name}*" за текущий месяц:
+    '''
     ONE_CURRENCY_REPORT = '''
 *{currency}*: {summ}'''
+
+    ONE_EXPENSE_CATEGORY_LINE = '''
+*{price}{currency}*: 🏷{note}   ⏰({dt})'''
+
+    NO_EXPENSE_CATEGORY_LINE = '''
+😯 нет трат по данной категории'''
 
     DECLINE_PURCHASE_REPORT = '''
 *Отменен* ⭕️ расход: {price} {currency_code} - "{note}".
@@ -256,6 +300,29 @@ _{month_name}_:
         Make choose month menu for detailed statistics.
         """
         return cls.CHOOSE_MONTH_MENU
+
+    @classmethod
+    def get_choose_expense_category(cls):
+        """
+        Make choose month menu for detailed statistics.
+        """
+        return cls.EXPENSE_CATEGORIES
+
+    @classmethod
+    def show_choose_expense_category(cls, category_name, expense_category_stats):
+        """
+        Make choose month menu for detailed statistics.
+        """
+        if expense_category_stats:
+            info = ''.join(cls.ONE_EXPENSE_CATEGORY_LINE.format(
+                price=item[1],
+                currency=item[0],
+                note=item[2],
+                dt=item[3].isoformat(),
+            ) for item in expense_category_stats)
+            return cls.EXPENSE_CATEGORIES_CALLBACK.format(category_name=category_name) + info
+        else:
+            return cls.EXPENSE_CATEGORIES_CALLBACK.format(category_name=category_name) + cls.NO_EXPENSE_CATEGORY_LINE
 
     @classmethod
     def get_conversation_intermediate_report(cls, grouped_stats, uncategorized_purchases):
@@ -406,6 +473,27 @@ class Statist:
             )
         if not currency_expenses:
             return 0
+        return currency_expenses
+
+    def get_expense_category_detalization(self, expense_category, month):
+        stats = self.session.\
+            query(Purchase.currency, Purchase.price, Purchase.note, Purchase.epoch).\
+            filter(Purchase.epoch >= self._get_month_start_datetime(month=month),
+                   Purchase.epoch < self._get_month_end_datetime(month=month),
+                   Purchase.expense == expense_category).all()
+
+        currency_expenses = []
+        for currency, groupped_currency_summ, note, dt in stats:
+            currency_expenses.append(
+                (
+                    currency.code if currency != OLD_BELARUSSIAN_RUBLE_CODE else NEW_BELARUSSIAN_RUBLE_CODE,
+                    round(groupped_currency_summ, 2),
+                    note,
+                    dt,
+                )
+            )
+        if not currency_expenses:
+            return
         return currency_expenses
 
 

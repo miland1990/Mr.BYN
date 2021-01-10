@@ -18,9 +18,9 @@ NEW_BELARUSSIAN_RUBLE_CODE = 'BYN'
 
 UI_CANCEL_BUTTON = 'отмена ввода ❌'
 
-EXPENSE_COMMUNAL = 'коммуналка 🏠'
-EXPENSE_PRODUCT_SHOP = 'магазин 🛒'
-EXPENSE_FEE = 'сборы 💸'
+EXPENSE_COMMUNAL = 'ежемесячные 🌔'
+EXPENSE_PRODUCT_SHOP = 'продовольственные 🛒'
+EXPENSE_FEE = 'подарки 💸'
 EXPENSE_DOMESTIC = 'бытовые 🛁'
 EXPENSE_HEALTH = 'здоровье 💊'
 EXPENSE_TRANSPORT = 'транспорт 🚗'
@@ -28,14 +28,10 @@ EXPENSE_BEAUTY = 'красота 👑'
 EXPENSE_NTERTAINMENT = 'развлечения 🎉'
 EXPENSE_BUY = 'покупки 👔'
 EXPENSE_CHILD = 'ребенок 👼'
-EXPENSE_HOME_BUILDING = 'стройка 🏗'
+EXPENSE_DOG = 'собака 🦮'
+EXPENSE_INSURANCE = 'страховка 🧤'
 EXPENSE_ANOTHER = 'иное 🗿'
 NO_EXPENSE = 'без категории 🔎'
-
-EXPENSES_NAMES = (EXPENSE_COMMUNAL, EXPENSE_PRODUCT_SHOP, EXPENSE_FEE,
-                  EXPENSE_DOMESTIC, EXPENSE_HEALTH, EXPENSE_TRANSPORT,
-                  EXPENSE_BEAUTY, EXPENSE_NTERTAINMENT, EXPENSE_BUY,
-                  EXPENSE_CHILD, EXPENSE_HOME_BUILDING, EXPENSE_ANOTHER)
 
 EXPENSES = (
     ('1', EXPENSE_COMMUNAL),
@@ -48,7 +44,8 @@ EXPENSES = (
     ('8', EXPENSE_NTERTAINMENT),
     ('9', EXPENSE_BUY),
     ('10', EXPENSE_CHILD),
-    ('11', EXPENSE_HOME_BUILDING),
+    ('13', EXPENSE_DOG),
+    ('14', EXPENSE_INSURANCE),
     ('12', EXPENSE_ANOTHER),
 )
 
@@ -67,7 +64,7 @@ MONTHES = (
     ('12', u'Декабрь ❄️'),
 )
 
-UI_CANCEL_INDEX = str(len(EXPENSES) + 1)
+UI_CANCEL_INDEX = str(max(map(lambda x: int(x[0]), EXPENSES)) + 1)
 
 REPLY_EXPENSES = EXPENSES + ((UI_CANCEL_INDEX, UI_CANCEL_BUTTON),)
 
@@ -77,6 +74,7 @@ NOTES_ALWAYS_NEED_MENU = (
 )
 
 SIMPLE_EXPENSE_CALLBACK = 's'
+EXPENSE_DETALIZATION_CALLBACK = 'e'
 MONTH_DETAILED_CALLBACK = 'm'
 DELIMETER = '|'
 REMEMBERED_EXPENSE_DUBLICATES_COUNT = 2
