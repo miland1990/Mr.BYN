@@ -1,5 +1,6 @@
 # coding: utf-8
-from constants import UI_CANCEL_INDEX, RE_INT, MONTHES, RE_SIMPLE_STR
+from datetime import datetime
+from constants import UI_CANCEL_INDEX, RE_INT, MONTHES, RE_SIMPLE_STR, EXPENSES
 from entity import SimpleExpenseMatch
 from models import PurchaseInputKind
 
@@ -227,4 +228,52 @@ class StatsCallbackUsecase:
         self.speaker.edit_detailed_command_message(
             new_text=text,
             message_id=message_id
+        )
+
+
+class ExpenseCategoryCallbackUsecase:
+
+    def __init__(
+            self,
+            session,
+            speaker,
+            text_maker,
+            statist,
+    ):
+        self.session = session
+        self.speaker = speaker
+        self.text_maker = text_maker
+        self.statist = statist
+
+    def execute(self, expense_category, message_id):
+        expense_category_stats = self.statist.get_expense_category_detalization(
+            expense_category=int(expense_category),
+            month=datetime.now().month,
+        )
+        expense_category_name = dict(EXPENSES).get(expense_category)
+        text = self.text_maker.show_choose_expense_category(
+            category_name=expense_category_name,
+            expense_category_stats=expense_category_stats,
+        )
+        self.speaker.edit_detailed_command_message(
+            new_text=text,
+            message_id=message_id
+        )
+
+
+class ExpenseCategoryDetailzation:
+
+    def __init__(
+            self,
+            session,
+            speaker,
+            text_maker,
+    ):
+        self.session = session
+        self.speaker = speaker
+        self.text_maker = text_maker
+
+    def execute(self):
+        self.speaker.send_choose_expense_category_detalization_message(
+            text=self.text_maker.get_choose_expense_category()
         )

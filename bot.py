@@ -3,13 +3,13 @@ import telebot
 
 from credentials import token
 from constants import RE_SIMPLE_STR, SIMPLE_EXPENSE_CALLBACK, DELIMETER, RE_REMOVE_PURCHASE_STR, \
-    MONTH_DETAILED_CALLBACK, RE_PRIOR_SMS_STR, RE_PRIOR_SMS, RE_SIMPLE
+    MONTH_DETAILED_CALLBACK, RE_PRIOR_SMS_STR, RE_PRIOR_SMS, RE_SIMPLE, EXPENSE_DETALIZATION_CALLBACK
 from decorators import authorise, wrap_to_session, logg
 from logg import logger
 from services import BotSpeaker, TextMaker, ExpenseCallbackProcessor, Statist, ExpenseInputProcessor, \
     ExpenseEditorProcessor
 from usecases import InputCallbackUsecase, ExpenseInputUsecase, PurchaseDeleteUseCase, \
-    StatsUsecase, StatsCallbackUsecase
+    StatsUsecase, StatsCallbackUsecase, ExpenseCategoryDetailzation, ExpenseCategoryCallbackUsecase
 
 bot = telebot.TeleBot(token)
 
@@ -178,6 +178,50 @@ def detailed_month_stats_callback_view(session, call):
     )
 
     usecase.execute(month_code=month_code, message_id=call.message.message_id)
+
+
+@bot.message_handler(commands=[u'category_expenses'])
+@authorise
+@wrap_to_session
+@logg
+def get_category_expenses(session, message):
+
+    speaker = BotSpeaker(
+        session=session,
+        chat_id=message.chat.id,
+        message_id=message.message_id,
+    )
+
+    usecase = ExpenseCategoryDetailzation(
+        session=session,
+        speaker=speaker,
+        text_maker=TextMaker,
+    )
+    usecase.execute()
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith(EXPENSE_DETALIZATION_CALLBACK))
+@authorise
+@wrap_to_session
+@logg
+def detailed_expense_category_callback_view(session, call):
+
+    expense_category_callback_call, expense_category = call.data.split(DELIMETER)
+
+    statist = Statist(session=session)
+    speaker = BotSpeaker(
+        session=session,
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+    )
+    usecase = ExpenseCategoryCallbackUsecase(
+        session=session,
+        speaker=speaker,
+        text_maker=TextMaker,
+        statist=statist
+    )
+
+    usecase.execute(expense_category=expense_category, message_id=call.message.message_id)
 
 
 @bot.message_handler(regexp=r'.*')
